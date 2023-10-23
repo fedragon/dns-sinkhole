@@ -1,7 +1,7 @@
 package dns
 
 import (
-	"fmt"
+	"log/slog"
 
 	"github.com/fedragon/sinkhole/internal/dns/message"
 )
@@ -12,11 +12,13 @@ var (
 
 type Sinkhole struct {
 	domains map[string]*Domain
+	logger  *slog.Logger
 }
 
-func NewSinkhole() *Sinkhole {
+func NewSinkhole(logger *slog.Logger) *Sinkhole {
 	return &Sinkhole{
 		domains: make(map[string]*Domain),
+		logger:  logger.With("source", "sinkhole"),
 	}
 }
 
@@ -35,23 +37,23 @@ func (s *Sinkhole) Register(domain string) error {
 
 func (s *Sinkhole) Handle(query *message.Query) (*message.Response, bool) {
 	if !query.IsRecursionDesired() {
-		fmt.Printf("passing non-recursion query to fallback DNS server. query: %v\n", query)
+		s.logger.Debug("passing non-recursion query to fallback DNS server", "query", query)
 		return nil, false
 	}
 
 	if len(query.Questions()) == 0 {
-		fmt.Printf("no questions in query. query: %v\n", query)
+		s.logger.Debug("no questions in query", "query", query)
 		return nil, false
 	}
 
 	if len(query.Questions()) > 0 {
-		fmt.Printf("currently unable to answer multiple questions in a single query. query: %v\n", query)
+		s.logger.Debug("currently unable to answer multiple questions in a single query", "query", query)
 		return nil, false
 	}
 
 	question := query.Questions()[0]
 	if question.Type != 1 || question.Class != 1 {
-		fmt.Printf("currently only able to answer A-type questions. query: %v\n", query)
+		s.logger.Debug("currently only able to answer A-type questions", "query", query)
 		return nil, false
 	}
 

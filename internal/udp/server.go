@@ -2,8 +2,8 @@ package udp
 
 import (
 	"context"
-	"fmt"
 	"io"
+	"log/slog"
 	"net"
 
 	"github.com/fedragon/sinkhole/internal/dns"
@@ -17,17 +17,19 @@ const (
 type Server struct {
 	sinkhole *dns.Sinkhole
 	fallback io.ReadWriteCloser
+	logger   *slog.Logger
 }
 
-func NewServer(sinkhole *dns.Sinkhole, fallback io.ReadWriteCloser) *Server {
+func NewServer(sinkhole *dns.Sinkhole, fallback io.ReadWriteCloser, logger *slog.Logger) *Server {
 	return &Server{
 		sinkhole: sinkhole,
 		fallback: fallback,
+		logger:   logger.With("source", "server"),
 	}
 }
 
-func (s *Server) Serve(ctx context.Context, port string) error {
-	udpAddr, err := net.ResolveUDPAddr("udp4", port)
+func (s *Server) Serve(ctx context.Context, address string) error {
+	udpAddr, err := net.ResolveUDPAddr("udp4", address)
 	if err != nil {
 		return err
 	}
@@ -43,53 +45,60 @@ func (s *Server) Serve(ctx context.Context, port string) error {
 		case <-ctx.Done():
 			return nil
 		default:
-			buffer := make([]byte, maxDnsPacketSize)
-			_, addr, err := conn.ReadFromUDP(buffer)
+			in := make([]byte, maxDnsPacketSize)
+			_, addr, err := conn.ReadFromUDP(in)
 			if err != nil {
-				fmt.Println(err)
-				return err
-			}
-
-			query, err := message.ParseQuery(buffer)
-			if err != nil {
-				fmt.Println(err)
+				s.logger.Error("unable to read from UDP connection", err)
 				continue
 			}
+
+			query, err := message.ParseQuery(in)
+			if err != nil {
+				s.logger.Error("unable to parse query", err)
+				continue
+			}
+
+			s.logger.Debug("handling query", "query", query, "raw_query", in)
 
 			response, handled := s.sinkhole.Handle(query)
+			var out []byte
 			if handled {
-				data, err := response.Marshal()
-				if err != nil {
-					return err
-				}
+				s.logger.Debug("the query has been handled by the sinkhole", "query", query)
 
-				if _, err := conn.WriteToUDP(data, addr); err != nil {
-					return err
+				out, err = response.Marshal()
+				if err != nil {
+					s.logger.Error("unable to marshal response", err)
+					continue
 				}
-				continue
+			} else {
+				out, err = s.queryFallbackDNS(in)
+				if err != nil {
+					s.logger.Error("unable to query fallback DNS", err)
+					continue
+				}
+				s.logger.Debug("the query has been handled by the fallback", "query", query)
 			}
 
-			if err := s.respondWithFallback(conn, addr, buffer); err != nil {
-				fmt.Println(err)
+			s.logger.Debug("sending response", "response", response, "raw_response", out)
+
+			if _, err := conn.WriteToUDP(out, addr); err != nil {
+				s.logger.Error("unable to write response to UDP", err)
+				continue
 			}
 		}
 	}
 }
 
-func (s *Server) respondWithFallback(conn *net.UDPConn, addr *net.UDPAddr, buffer []byte) error {
+func (s *Server) queryFallbackDNS(buffer []byte) ([]byte, error) {
 	if _, err := s.fallback.Write(buffer); err != nil {
-		return err
+		return nil, err
 	}
 
 	response := make([]byte, maxDnsPacketSize)
 	_, err := s.fallback.Read(response)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if _, err := conn.WriteToUDP(response, addr); err != nil {
-		return err
-	}
-
-	return nil
+	return response, nil
 }

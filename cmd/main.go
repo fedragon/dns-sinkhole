@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
+	"os"
 
 	"github.com/kelseyhightower/envconfig"
 
@@ -15,19 +16,25 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
 	var cfg config.Config
 	if err := envconfig.Process("", &cfg); err != nil {
-		log.Fatal(err)
+		logger.Error("unable to parse configuration", "error", err)
+		os.Exit(1)
 	}
 
-	hole := dns.NewSinkhole()
-
+	sinkhole := dns.NewSinkhole(logger)
 	fallback, err := udp.NewClient(cfg.FallbackAddr.String())
 	if err != nil {
-		log.Fatal(err)
+		logger.Error("unable to connect to fallback DNS", "address", cfg.FallbackAddr.String(), "error", err)
+		os.Exit(1)
 	}
-	udpServer := udp.NewServer(hole, fallback)
+	defer fallback.Close()
+
+	udpServer := udp.NewServer(sinkhole, fallback, logger)
 	if err := udpServer.Serve(ctx, cfg.Addr.String()); err != nil {
-		log.Fatal(err)
+		logger.Error("unable to serve UDP", "address", cfg.Addr.String(), "error", err)
+		os.Exit(1)
 	}
 }
