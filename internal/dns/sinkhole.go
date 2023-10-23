@@ -2,6 +2,7 @@ package dns
 
 import (
 	"log/slog"
+	"strings"
 
 	"github.com/fedragon/sinkhole/internal/dns/message"
 )
@@ -25,11 +26,12 @@ func NewSinkhole(logger *slog.Logger) *Sinkhole {
 func (s *Sinkhole) Register(domain string) error {
 	d, ok := s.domains[domain]
 	if !ok {
-		var err error
-		d, err = NewDomain(domain)
+		d, err := NewDomain(domain)
 		if err != nil {
 			return err
 		}
+		s.domains[d.name] = d
+		return nil
 	}
 
 	return d.Register(domain)
@@ -52,7 +54,12 @@ func (s *Sinkhole) Handle(query *message.Query) (*message.Response, bool) {
 		return nil, false
 	}
 
-	d, ok := s.domains[question.Name]
+	idx := strings.LastIndex(question.Name, ".")
+	if idx == -1 {
+		return nil, false
+	}
+
+	d, ok := s.domains[question.Name[idx+1:]]
 	if !ok {
 		return nil, false
 	}
@@ -63,7 +70,7 @@ func (s *Sinkhole) Handle(query *message.Query) (*message.Response, bool) {
 			Type:       message.TypeA,
 			Class:      message.ClassInternetAddress,
 			TTL:        60,
-			Length:     uint16(len(nonRoutableAddress)),
+			Length:     4,
 			Data:       nonRoutableAddress,
 		}
 
