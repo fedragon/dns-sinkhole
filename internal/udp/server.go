@@ -2,9 +2,12 @@ package udp
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"net"
+	"os"
+	"time"
 
 	"github.com/fedragon/sinkhole/internal/dns"
 	"github.com/fedragon/sinkhole/internal/dns/message"
@@ -40,21 +43,34 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 	}
 	defer conn.Close()
 
+	s.logger.Debug("listening on address", "address", address)
+
+	if err := conn.SetReadDeadline(time.Now().Add(time.Second)); err != nil {
+		return err
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
+			s.logger.Debug("shutting down server", "address", address)
 			return nil
 		default:
+			if err := conn.SetReadDeadline(time.Now().Add(time.Second)); err != nil {
+				return err
+			}
+
 			in := make([]byte, maxDnsPacketSize)
 			_, addr, err := conn.ReadFromUDP(in)
 			if err != nil {
-				s.logger.Error("unable to read from UDP connection", err)
+				if !errors.Is(err, os.ErrDeadlineExceeded) {
+					return err
+				}
 				continue
 			}
 
 			query, err := message.ParseQuery(in)
 			if err != nil {
-				s.logger.Error("unable to parse query", err)
+				s.logger.Error("unable to parse query", "error", err)
 				continue
 			}
 
@@ -67,13 +83,13 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 
 				out, err = response.Marshal()
 				if err != nil {
-					s.logger.Error("unable to marshal response", err)
+					s.logger.Error("unable to marshal response", "error", err)
 					continue
 				}
 			} else {
 				out, err = s.queryFallbackDNS(in)
 				if err != nil {
-					s.logger.Error("unable to query fallback DNS", err)
+					s.logger.Error("unable to query fallback DNS", "error", err)
 					continue
 				}
 				s.logger.Debug("the query has been handled by the fallback", "query", query)
@@ -82,8 +98,7 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 			s.logger.Debug("sending response", "response", response, "raw_response", out)
 
 			if _, err := conn.WriteToUDP(out, addr); err != nil {
-				s.logger.Error("unable to write response to UDP", err)
-				continue
+				return err
 			}
 		}
 	}

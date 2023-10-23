@@ -4,6 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/kelseyhightower/envconfig"
 
@@ -13,10 +15,10 @@ import (
 )
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM)
 	defer cancel()
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
 	var cfg config.Config
 	if err := envconfig.Process("", &cfg); err != nil {
@@ -24,17 +26,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	sinkhole := dns.NewSinkhole(logger)
-	fallback, err := udp.NewClient(cfg.FallbackAddr.String())
+	fallback, err := udp.NewClient(cfg.FallbackAddr)
 	if err != nil {
-		logger.Error("unable to connect to fallback DNS", "address", cfg.FallbackAddr.String(), "error", err)
+		logger.Error("unable to connect to fallback DNS", "address", cfg.FallbackAddr, "error", err)
 		os.Exit(1)
 	}
 	defer fallback.Close()
 
-	udpServer := udp.NewServer(sinkhole, fallback, logger)
-	if err := udpServer.Serve(ctx, cfg.Addr.String()); err != nil {
-		logger.Error("unable to serve UDP", "address", cfg.Addr.String(), "error", err)
+	udpServer := udp.NewServer(dns.NewSinkhole(logger), fallback, logger)
+	if err := udpServer.Serve(ctx, cfg.Addr); err != nil {
+		logger.Error("unable to serve UDP", "address", cfg.Addr, "error", err)
 		os.Exit(1)
 	}
 }

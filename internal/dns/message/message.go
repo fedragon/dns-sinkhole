@@ -15,22 +15,11 @@ type Type uint16
 const (
 	ClassInternetAddress Class = 1
 
-	TypeA     Type = 1
-	TypeNS    Type = 2
-	TypeCNAME Type = 5
-	TypePTR   Type = 12
-	TypeHINFO Type = 13
-	TypeMX    Type = 15
-	TypeAXFR  Type = 252
-	TypeANY   Type = 255
+	TypeA Type = 1
 
-	queryMask              = 0b1000_0000_0000_0000
-	opCodeMask             = 0b0111_1000_0000_0000
-	authoritativeMask      = 0b0000_0100_0000_0000
-	truncatedMask          = 0b0000_0010_0000_0000
-	recursionDesiredMask   = 0b0000_0001_0000_0000
-	recursionAvailableMask = 0b0000_0000_1000_0000
-	returnCodeMask         = 0b0000_0000_0000_1111
+	queryMask            = 0b1000_0000_0000_0000
+	opCodeMask           = 0b0111_1000_0000_0000
+	recursionDesiredMask = 0b0000_0001_0000_0000
 )
 
 var ErrTooShort = errors.New("message too short")
@@ -90,6 +79,24 @@ func ParseQuery(data []byte) (*Query, error) {
 		return nil, errors.New("no questions")
 	}
 
+	// ignore number of answers
+	_, err = read(r, 2)
+	if err != nil {
+		return nil, err
+	}
+
+	// ignore number of authorititatives
+	_, err = read(r, 2)
+	if err != nil {
+		return nil, err
+	}
+
+	// ignore number of additional
+	_, err = read(r, 2)
+	if err != nil {
+		return nil, err
+	}
+
 	questions, err := parseQuestions(r, numQuestions)
 	if err != nil {
 		return nil, err
@@ -128,15 +135,13 @@ func parseQuestions(r *bufio.Reader, n uint16) ([]Question, error) {
 }
 
 type Response struct {
-	id         uint16
-	flags      uint16
-	questions  []Question
-	answers    []Record
-	authority  []Record
-	additional []Record
+	id        uint16
+	flags     uint16
+	questions []Question
+	answers   []Record
 }
 
-func BuildResponse(query *Query, answer Record) *Response {
+func NewResponse(query *Query, answer Record) *Response {
 	var flags uint16
 	flags |= 1 << 15 // QueryResponse: 1 for Response
 	if query.IsRecursionDesired() {
@@ -160,8 +165,8 @@ func (m *Response) Marshal() ([]byte, error) {
 	data = binary.BigEndian.AppendUint16(data, m.flags)
 	data = binary.BigEndian.AppendUint16(data, uint16(len(m.questions)))
 	data = binary.BigEndian.AppendUint16(data, uint16(len(m.answers)))
-	data = binary.BigEndian.AppendUint16(data, 0) // number of authoritative
-	data = binary.BigEndian.AppendUint16(data, 0) // number of additional
+	data = binary.BigEndian.AppendUint16(data, 0) // number of authoritative records
+	data = binary.BigEndian.AppendUint16(data, 0) // number of additional records
 
 	for _, q := range m.questions {
 		buf, err := q.marshal()

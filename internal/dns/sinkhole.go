@@ -41,19 +41,14 @@ func (s *Sinkhole) Handle(query *message.Query) (*message.Response, bool) {
 		return nil, false
 	}
 
-	if len(query.Questions()) == 0 {
-		s.logger.Debug("no questions in query", "query", query)
-		return nil, false
-	}
-
-	if len(query.Questions()) > 0 {
-		s.logger.Debug("currently unable to answer multiple questions in a single query", "query", query)
+	if len(query.Questions()) != 1 {
+		s.logger.Debug("passing query with multiple questions to fallback DNS", "query", query)
 		return nil, false
 	}
 
 	question := query.Questions()[0]
 	if question.Type != 1 || question.Class != 1 {
-		s.logger.Debug("currently only able to answer A-type questions", "query", query)
+		s.logger.Debug("passing query with non-A questions to fallback DNS", "query", query)
 		return nil, false
 	}
 
@@ -62,7 +57,6 @@ func (s *Sinkhole) Handle(query *message.Query) (*message.Response, bool) {
 		return nil, false
 	}
 
-	var response *message.Response
 	if d.Contains(question.Name) {
 		answer := message.Record{
 			DomainName: question.Name,
@@ -73,8 +67,8 @@ func (s *Sinkhole) Handle(query *message.Query) (*message.Response, bool) {
 			Data:       nonRoutableAddress,
 		}
 
-		response = message.BuildResponse(query, answer)
+		return message.NewResponse(query, answer), true
 	}
 
-	return response, true
+	return nil, false
 }
