@@ -11,10 +11,11 @@ import (
 
 	"github.com/fedragon/sinkhole/internal/dns"
 	"github.com/fedragon/sinkhole/internal/dns/message"
+	"github.com/fedragon/sinkhole/internal/metrics"
 )
 
 const (
-	maxDnsPacketSize = 512
+	maxPacketSize = 512
 )
 
 type Server struct {
@@ -59,8 +60,8 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 				return err
 			}
 
-			in := make([]byte, maxDnsPacketSize)
-			_, addr, err := conn.ReadFromUDP(in)
+			rawQuery := make([]byte, maxPacketSize)
+			_, addr, err := conn.ReadFromUDP(rawQuery)
 			if err != nil {
 				if !errors.Is(err, os.ErrDeadlineExceeded) {
 					return err
@@ -68,36 +69,40 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 				continue
 			}
 
-			query, err := message.ParseQuery(in)
+			query, err := message.ParseQuery(rawQuery)
 			if err != nil {
+				metrics.QueryParsingErrors.Inc()
 				s.logger.Error("unable to parse query", "error", err)
 				continue
 			}
 
-			s.logger.Debug("handling query", "query", query, "raw_query", in)
+			s.logger.Debug("handling query", "raw_query", rawQuery)
 
 			response, handled := s.sinkhole.Handle(query)
-			var out []byte
+			var rawResponse []byte
 			if handled {
-				s.logger.Debug("the query has been handled by the sinkhole", "query", query)
+				metrics.BlockedQueries.Inc()
 
-				out, err = response.Marshal()
+				rawResponse, err = response.Marshal()
 				if err != nil {
-					s.logger.Error("unable to marshal response", "error", err)
+					metrics.ResponseMarshallingErrors.Inc()
+					s.logger.Error("unable to marshal response", "response", response, "error", err)
 					continue
 				}
 			} else {
-				out, err = s.queryFallbackDNS(in)
+				metrics.LegitQueries.Inc()
+				rawResponse, err = s.queryFallbackDNS(rawQuery)
 				if err != nil {
-					s.logger.Error("unable to query fallback DNS", "error", err)
+					metrics.FallbackErrors.Inc()
+					s.logger.Error("unable to query fallback DNS", "raw_query", rawQuery, "error", err)
 					continue
 				}
-				s.logger.Debug("the query has been handled by the fallback", "query", query)
+				s.logger.Debug("the query has been handled by the fallback", "query", rawQuery)
 			}
 
-			s.logger.Debug("sending response", "response", response, "raw_response", out)
+			s.logger.Debug("sending response", "raw_response", rawResponse)
 
-			if _, err := conn.WriteToUDP(out, addr); err != nil {
+			if _, err := conn.WriteToUDP(rawResponse, addr); err != nil {
 				return err
 			}
 		}
@@ -109,7 +114,7 @@ func (s *Server) queryFallbackDNS(buffer []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	response := make([]byte, maxDnsPacketSize)
+	response := make([]byte, maxPacketSize)
 	_, err := s.fallback.Read(response)
 	if err != nil {
 		return nil, err
