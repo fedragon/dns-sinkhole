@@ -2,7 +2,9 @@
 
 Acts as a DNS sinkhole, receiving DNS queries and returning non-routable addresses for blacklisted domains. It resolves legitimate DNS queries using a (configurable) fallback DNS server.
 
-Like [pi-hole](https://github.com/pi-hole/pi-hole), but without most of its features 😆.
+Conceptually inspired by [pi-hole](https://github.com/pi-hole/pi-hole), but without most of its features 😆.
+
+It can (optionally) expose an HTTP endpoint to provide metrics to a Prometheus server (see configuration options).
 
 ## Motivation
 
@@ -12,8 +14,43 @@ One day I started reading the [Running pi-hole on a Raspberry Pi](https://www.ra
 
 Choose your preferred version of Steven Black's Hosts [here](https://github.com/StevenBlack/hosts#list-of-all-hosts-file-variants), then run
 
-```shell
-HOSTS_URL=<link to your chosen version of Steven Black Hosts file> make fetch
+### 1. Download hosts file
 
-make run
+```shell
+export HOSTS_URL="<link to your chosen version of Steven Black Hosts file>"
+
+make fetch
+```
+
+### 2. Build
+
+```shell
+# note: this command uses the following defaults:
+# GOOS=linux
+# GOARCH=arm
+# GOARM=6
+# overwrite any of them if/as needed using environment variables
+
+make build
+```
+
+### 3. Deploy to your target server (e.g. a Raspberry Pi)
+
+```shell
+scp bin/sinkhole user@ip:
+scp hosts user@ip:
+```
+
+### 3. Run
+
+```shell
+# note: this command uses the following defaults:
+# SINKHOLE_ADDR="0.0.0.0:1153"    # address of the UDP server used to receive DNS queries
+# FALLBACK_ADDR="1.1.1.1:53"      # DNS server for legitimate queries (default: Cloudflare's)
+# HOSTS_PATH="./hosts"            # path to the hosts file containing blacklisted domains
+# METRICS_ENABLED="true"          # expose endpoint for Prometheus metrics?
+# HTTP_ADDR="0.0.0.0:8000"        # address of the HTTP server (only started if METRICS_ENABLED=true)
+# overwrite any of them if/as needed using environment variables
+
+bin/sinkhole
 ```
