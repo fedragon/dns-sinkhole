@@ -65,7 +65,7 @@ func (s *Sinkhole) Resolve(query *message.Query) (*message.Response, bool) {
 			DomainName: question.Name,
 			Type:       message.TypeA,
 			Class:      message.ClassInternetAddress,
-			TTL:        60,
+			TTL:        3600,
 			Length:     4,
 			Data:       nonRoutableAddress,
 		}
