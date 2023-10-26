@@ -56,9 +56,14 @@ func main() {
 	scanner.Split(bufio.ScanLines)
 
 	var count int
-	for domain := range blacklist.Parse(scanner) {
-		if err := sinkhole.Register(domain); err != nil {
-			logger.Error("unable to register domain", "domain", domain, "error", err)
+	for line := range blacklist.Parse(scanner) {
+		if line.Err != nil {
+			logger.Error("Unable to parse blacklist file", "error", line.Err)
+			return
+		}
+
+		if err := sinkhole.Register(line.Domain); err != nil {
+			logger.Error("Unable to register domain", "domain", line.Domain, "error", err)
 			return
 		}
 		count++

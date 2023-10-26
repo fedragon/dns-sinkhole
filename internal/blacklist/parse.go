@@ -2,14 +2,18 @@ package blacklist
 
 import (
 	"bufio"
-	"fmt"
 	"strings"
 )
 
-func Parse(scanner *bufio.Scanner) <-chan string {
-	out := make(chan string)
+type Result struct {
+	Domain string
+	Err    error
+}
 
-	go func(ch chan<- string) {
+func Parse(scanner *bufio.Scanner) <-chan Result {
+	out := make(chan Result)
+
+	go func(ch chan<- Result) {
 		defer close(out)
 
 		var started bool
@@ -33,12 +37,12 @@ func Parse(scanner *bufio.Scanner) <-chan string {
 					continue
 				}
 
-				ch <- fields[1]
+				ch <- Result{Domain: fields[1]}
 			}
 		}
 
 		if err := scanner.Err(); err != nil {
-			fmt.Printf("scan error: %v\n", err)
+			ch <- Result{Err: err}
 		}
 	}(out)
 

@@ -17,12 +17,14 @@ func TestSinkhole(t *testing.T) {
 	assert.NoError(t, err)
 	defer file.Close()
 
-	for domain := range blacklist.Parse(bufio.NewScanner(file)) {
-		assert.NoError(t, s.Register(domain))
+	for line := range blacklist.Parse(bufio.NewScanner(file)) {
+		assert.NoError(t, line.Err)
+		assert.NoError(t, s.Register(line.Domain))
 	}
 
-	for domain := range blacklist.Parse(bufio.NewScanner(file)) {
-		assert.True(t, s.Contains(domain))
+	for line := range blacklist.Parse(bufio.NewScanner(file)) {
+		assert.NoError(t, line.Err)
+		assert.True(t, s.Contains(line.Domain))
 	}
 
 	assert.False(t, s.Contains("federico.is"))
