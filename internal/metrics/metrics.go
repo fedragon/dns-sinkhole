@@ -21,8 +21,8 @@ var (
 		},
 		[]string{"blocked"})
 
-	BlockedQueries = queries.With(p.Labels{"blocked": "true"})
-	LegitQueries   = queries.With(p.Labels{"blocked": "false"})
+	BlockedQueries  = queries.With(p.Labels{"blocked": "true"})
+	FallbackQueries = queries.With(p.Labels{"blocked": "false"})
 
 	QueryParsingErrors = promauto.NewCounter(
 		p.CounterOpts{

@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/fedragon/sinkhole/internal"
 	"github.com/fedragon/sinkhole/internal/blacklist"
 	"github.com/fedragon/sinkhole/internal/config"
 	"github.com/fedragon/sinkhole/internal/dns"
@@ -69,11 +70,10 @@ func main() {
 		count++
 	}
 
-	group, gCtx := errgroup.WithContext(ctx)
-
 	metrics.BlacklistedDomains.Set(float64(count))
 	logger.Debug("Finished registering blacklisted domains", "count", count)
 
+	group, gCtx := errgroup.WithContext(ctx)
 	if cfg.MetricsEnabled || cfg.DebugEndpointEnabled {
 		httpHandler := http.ServeMux{}
 
@@ -95,18 +95,18 @@ func main() {
 		}
 
 		group.Go(func() error {
-			logger.Debug("Starting metrics server", "address", cfg.HttpAddr)
+			logger.Debug("Starting HTTP server", "address", cfg.HttpAddr)
 			return httpServer.ListenAndServe()
 		})
 		group.Go(func() error {
 			<-gCtx.Done()
+			logger.Debug("Shutting down HTTP server")
 			return httpServer.Shutdown(context.Background())
 		})
 	}
 
 	group.Go(func() error {
-		udpServer := udp.NewServer(sinkhole, fallback, logger)
-		return udpServer.Serve(gCtx, cfg.Addr)
+		return internal.NewServer(sinkhole, fallback, logger).Serve(gCtx, cfg.Addr)
 	})
 
 	if err := group.Wait(); err != nil {

@@ -1,4 +1,4 @@
-package udp
+package internal
 
 import (
 	"context"
@@ -28,7 +28,7 @@ func NewServer(sinkhole *dns.Sinkhole, fallback io.ReadWriteCloser, logger *slog
 	return &Server{
 		sinkhole: sinkhole,
 		fallback: fallback,
-		logger:   logger.With("source", "server"),
+		logger:   logger.With("source", "udp_server"),
 	}
 }
 
@@ -44,7 +44,7 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 	}
 	defer conn.Close()
 
-	s.logger.Debug("listening on address", "address", address)
+	s.logger.Debug("Starting UDP server", "address", address)
 
 	if err := conn.SetReadDeadline(time.Now().Add(time.Second)); err != nil {
 		return err
@@ -53,7 +53,7 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 	for {
 		select {
 		case <-ctx.Done():
-			s.logger.Debug("Shutting down server", "address", address)
+			s.logger.Debug("Shutting down UDP server")
 			return nil
 		default:
 			if err := conn.SetReadDeadline(time.Now().Add(time.Second)); err != nil {
@@ -76,9 +76,7 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 				continue
 			}
 
-			s.logger.Debug("Handling query", "raw_query", rawQuery)
-
-			response, handled := s.sinkhole.Handle(query)
+			response, handled := s.sinkhole.Resolve(query)
 			var rawResponse []byte
 			if handled {
 				metrics.BlockedQueries.Inc()
@@ -90,17 +88,14 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 					continue
 				}
 			} else {
-				metrics.LegitQueries.Inc()
+				metrics.FallbackQueries.Inc()
 				rawResponse, err = s.queryFallbackDNS(rawQuery)
 				if err != nil {
 					metrics.FallbackErrors.Inc()
 					s.logger.Error("Unable to query fallback DNS", "raw_query", rawQuery, "error", err)
 					continue
 				}
-				s.logger.Debug("The query has been handled by the fallback", "query", rawQuery)
 			}
-
-			s.logger.Debug("Sending response", "raw_response", rawResponse)
 
 			if _, err := conn.WriteToUDP(rawResponse, addr); err != nil {
 				return err

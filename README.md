@@ -1,14 +1,16 @@
 # sinkhole
 
-Acts as a DNS sinkhole, receiving DNS queries and returning non-routable addresses for blacklisted domains. It resolves legitimate DNS queries using a (configurable) fallback DNS server.
-
-Conceptually inspired by [pi-hole](https://github.com/pi-hole/pi-hole), but without most of its features 😆.
+Acts as a DNS sinkhole, receiving DNS queries and returning non-routable addresses for blacklisted domains; legitimate DNS queries are forwarded to a (configurable) fallback DNS resolver.
 
 It can (optionally) expose an HTTP endpoint to provide metrics to a Prometheus server (see configuration options).
 
 ## Motivation
 
 One day I started reading the [Running pi-hole on a Raspberry Pi](https://www.raspberrypi.com/tutorials/running-pi-hole-on-a-raspberry-pi/) tutorial... and writing my own DNS sinkhole sounded like an interesting pet project, so here we are.
+
+## Current limitations
+
+At the time of writing, the sinkhole can only resolve uncompressed, A-type, Internet-class queries containing a single question: any other query will be forwarded to the fallback DNS resolver.
 
 ## Usage
 
@@ -46,7 +48,7 @@ scp hosts user@ip:
 ```shell
 # note: this command uses the following defaults:
 # SINKHOLE_ADDR="0.0.0.0:1153"    # address of the UDP server used to receive DNS queries
-# FALLBACK_ADDR="1.1.1.1:53"      # DNS server for legitimate queries (default: Cloudflare's)
+# FALLBACK_ADDR="1.1.1.1:53"      # DNS recursive resolver for legitimate queries (default: Cloudflare's)
 # HOSTS_PATH="./hosts"            # path to the hosts file containing blacklisted domains
 # METRICS_ENABLED="true"          # expose endpoint for Prometheus metrics?
 # HTTP_ADDR="0.0.0.0:8000"        # address of the HTTP server (only started if METRICS_ENABLED=true)

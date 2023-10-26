@@ -38,7 +38,7 @@ func (s *Sinkhole) Register(domain string) error {
 	return found.Register(domain)
 }
 
-func (s *Sinkhole) Handle(query *message.Query) (*message.Response, bool) {
+func (s *Sinkhole) Resolve(query *message.Query) (*message.Response, bool) {
 	if !query.IsRecursionDesired() {
 		s.logger.Debug("passing non-recursion query to fallback DNS server", "query", query)
 		return nil, false
