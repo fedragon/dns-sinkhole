@@ -53,7 +53,7 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 	for {
 		select {
 		case <-ctx.Done():
-			s.logger.Debug("shutting down server", "address", address)
+			s.logger.Debug("Shutting down server", "address", address)
 			return nil
 		default:
 			if err := conn.SetReadDeadline(time.Now().Add(time.Second)); err != nil {
@@ -72,11 +72,11 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 			query, err := message.ParseQuery(rawQuery)
 			if err != nil {
 				metrics.QueryParsingErrors.Inc()
-				s.logger.Error("unable to parse query", "error", err)
+				s.logger.Error("Unable to parse query", "error", err)
 				continue
 			}
 
-			s.logger.Debug("handling query", "raw_query", rawQuery)
+			s.logger.Debug("Handling query", "raw_query", rawQuery)
 
 			response, handled := s.sinkhole.Handle(query)
 			var rawResponse []byte
@@ -86,7 +86,7 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 				rawResponse, err = response.Marshal()
 				if err != nil {
 					metrics.ResponseMarshallingErrors.Inc()
-					s.logger.Error("unable to marshal response", "response", response, "error", err)
+					s.logger.Error("Unable to marshal response", "response", response, "error", err)
 					continue
 				}
 			} else {
@@ -94,13 +94,13 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 				rawResponse, err = s.queryFallbackDNS(rawQuery)
 				if err != nil {
 					metrics.FallbackErrors.Inc()
-					s.logger.Error("unable to query fallback DNS", "raw_query", rawQuery, "error", err)
+					s.logger.Error("Unable to query fallback DNS", "raw_query", rawQuery, "error", err)
 					continue
 				}
-				s.logger.Debug("the query has been handled by the fallback", "query", rawQuery)
+				s.logger.Debug("The query has been handled by the fallback", "query", rawQuery)
 			}
 
-			s.logger.Debug("sending response", "raw_response", rawResponse)
+			s.logger.Debug("Sending response", "raw_response", rawResponse)
 
 			if _, err := conn.WriteToUDP(rawResponse, addr); err != nil {
 				return err

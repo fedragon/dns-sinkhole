@@ -79,7 +79,7 @@ func upsert(parent *Domain, name string) error {
 	idx := strings.LastIndex(name, ".")
 	if idx == -1 {
 		if parent == nil {
-			return errors.New("invalid domain")
+			return fmt.Errorf("invalid domain: %s", name)
 		}
 
 		if len(parent.children) == 0 {

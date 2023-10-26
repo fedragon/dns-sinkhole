@@ -30,13 +30,13 @@ func main() {
 
 	var cfg config.Config
 	if err := envconfig.Process("", &cfg); err != nil {
-		logger.Error("unable to parse configuration", "error", err)
+		logger.Error("Unable to parse configuration", "error", err)
 		return
 	}
 
 	fallback, err := udp.NewClient(cfg.FallbackAddr)
 	if err != nil {
-		logger.Error("unable to connect to fallback DNS", "address", cfg.FallbackAddr, "error", err)
+		logger.Error("Unable to connect to fallback DNS", "address", cfg.FallbackAddr, "error", err)
 		return
 	}
 	defer fallback.Close()
@@ -45,7 +45,7 @@ func main() {
 
 	file, err := os.Open(cfg.HostsPath)
 	if err != nil {
-		logger.Error("unable to open hosts file", "path", cfg.HostsPath, "error", err)
+		logger.Error("Unable to open hosts file", "path", cfg.HostsPath, "error", err)
 		return
 	}
 	defer file.Close()
@@ -111,7 +111,7 @@ func main() {
 
 	if err := group.Wait(); err != nil {
 		if !errors.Is(err, http.ErrServerClosed) {
-			logger.Error("fatal error", "error", err)
+			logger.Error("Fatal error", "error", err)
 		}
 
 		return
