@@ -16,8 +16,8 @@ var (
 	queries = promauto.NewCounterVec(
 		p.CounterOpts{
 			Namespace: "sinkhole",
-			Name:      "blacklisted_queries",
-			Help:      "The total number of blacklisted queries",
+			Name:      "queries",
+			Help:      "The total number of queries",
 		},
 		[]string{"blocked"})
 

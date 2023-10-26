@@ -80,3 +80,17 @@ func (s *Sinkhole) Handle(query *message.Query) (*message.Response, bool) {
 
 	return nil, false
 }
+
+func (s *Sinkhole) Contains(domain string) bool {
+	idx := strings.LastIndex(domain, ".")
+	if idx == -1 {
+		return false
+	}
+
+	d, ok := s.domains[domain[idx+1:]]
+	if !ok {
+		return false
+	}
+
+	return d.Contains(domain)
+}

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -68,16 +69,28 @@ func main() {
 	metrics.BlacklistedDomains.Set(float64(count))
 	logger.Debug("Finished registering blacklisted domains", "count", count)
 
-	if cfg.MetricsEnabled {
+	if cfg.MetricsEnabled || cfg.DebugEndpointEnabled {
 		httpHandler := http.ServeMux{}
-		httpHandler.Handle("/metrics", promhttp.Handler())
+
+		if cfg.DebugEndpointEnabled {
+			httpHandler.HandleFunc("/debug", func(w http.ResponseWriter, r *http.Request) {
+				domain := r.URL.Query().Get("domain")
+				contains := sinkhole.Contains(domain)
+				_, _ = w.Write([]byte(fmt.Sprintf("%t", contains)))
+			})
+		}
+
+		if cfg.MetricsEnabled {
+			httpHandler.Handle("/metrics", promhttp.Handler())
+		}
+
 		httpServer := &http.Server{
-			Addr:    cfg.MetricsAddr,
+			Addr:    cfg.HttpAddr,
 			Handler: &httpHandler,
 		}
 
 		group.Go(func() error {
-			logger.Debug("Starting metrics server", "address", cfg.MetricsAddr)
+			logger.Debug("Starting metrics server", "address", cfg.HttpAddr)
 			return httpServer.ListenAndServe()
 		})
 		group.Go(func() error {
