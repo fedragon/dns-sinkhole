@@ -22,7 +22,10 @@ const (
 	recursionDesiredMask = 0b0000_0001_0000_0000
 )
 
-var ErrTooShort = errors.New("message too short")
+var (
+	ErrTooShort = errors.New("message too short")
+	byteOrder   = binary.BigEndian
+)
 
 type Query struct {
 	id        uint16
@@ -53,19 +56,17 @@ func ParseQuery(data []byte) (*Query, error) {
 
 	r := bufio.NewReader(bytes.NewReader(data))
 
-	// Big-endianness is the dominant ordering in networking protocols, such as in the Internet protocol suite, where it is referred to as network order, transmitting the most significant byte first.
-	// source: https://en.wikipedia.org/wiki/Endianness
 	id, err := read(r, 2)
 	if err != nil {
 		return nil, err
 	}
-	identification := binary.BigEndian.Uint16(id)
+	identification := byteOrder.Uint16(id)
 
 	fs, err := read(r, 2)
 	if err != nil {
 		return nil, err
 	}
-	flags := binary.BigEndian.Uint16(fs)
+	flags := byteOrder.Uint16(fs)
 	if flags&queryMask>>15 != 0 {
 		return nil, errors.New("not a query")
 	}
@@ -74,7 +75,7 @@ func ParseQuery(data []byte) (*Query, error) {
 	if err != nil {
 		return nil, err
 	}
-	numQuestions := binary.BigEndian.Uint16(qs)
+	numQuestions := byteOrder.Uint16(qs)
 	if numQuestions == 0 {
 		return nil, errors.New("no questions")
 	}
@@ -149,12 +150,12 @@ func NewResponse(query *Query, answer Record) *Response {
 
 func (m *Response) Marshal() ([]byte, error) {
 	var data []byte
-	data = binary.BigEndian.AppendUint16(data, m.id)
-	data = binary.BigEndian.AppendUint16(data, m.flags)
-	data = binary.BigEndian.AppendUint16(data, uint16(len(m.questions)))
-	data = binary.BigEndian.AppendUint16(data, uint16(len(m.answers)))
-	data = binary.BigEndian.AppendUint16(data, 0) // number of authoritative records
-	data = binary.BigEndian.AppendUint16(data, 0) // number of additional records
+	data = byteOrder.AppendUint16(data, m.id)
+	data = byteOrder.AppendUint16(data, m.flags)
+	data = byteOrder.AppendUint16(data, uint16(len(m.questions)))
+	data = byteOrder.AppendUint16(data, uint16(len(m.answers)))
+	data = byteOrder.AppendUint16(data, 0) // number of authoritative records
+	data = byteOrder.AppendUint16(data, 0) // number of additional records
 
 	for _, q := range m.questions {
 		buf, err := q.marshal()

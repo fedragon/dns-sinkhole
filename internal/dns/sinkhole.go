@@ -39,19 +39,24 @@ func (s *Sinkhole) Register(domain string) error {
 }
 
 func (s *Sinkhole) Resolve(query *message.Query) (*message.Response, bool) {
+	if query.OpCode() != 0 {
+		s.logger.Debug("Passing non-standard query to fallback DNS resolver", "query", query)
+		return nil, false
+	}
+
 	if !query.IsRecursionDesired() {
-		s.logger.Debug("passing non-recursion query to fallback DNS server", "query", query)
+		s.logger.Debug("Passing non-recursion query to fallback DNS resolver", "query", query)
 		return nil, false
 	}
 
 	if len(query.Questions()) != 1 {
-		s.logger.Debug("passing query with multiple questions to fallback DNS", "query", query)
+		s.logger.Debug("Passing query with multiple questions to fallback DNS resolver", "query", query)
 		return nil, false
 	}
 
 	question := query.Questions()[0]
-	if question.Type != 1 || question.Class != 1 {
-		s.logger.Debug("passing query with non-A questions to fallback DNS", "query", query)
+	if question.Type != message.TypeA || question.Class != message.ClassInternetAddress {
+		s.logger.Debug("Passing query with non-A type or non-Internet class to fallback DNS resolver", "query", query)
 		return nil, false
 	}
 

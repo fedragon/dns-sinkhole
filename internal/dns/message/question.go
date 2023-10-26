@@ -2,7 +2,6 @@ package message
 
 import (
 	"bufio"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"math"
@@ -49,8 +48,8 @@ func unmarshalQuestion(r *bufio.Reader) (Question, error) {
 
 	return Question{
 		Name:  strings.Join(parts, "."),
-		Type:  Type(binary.BigEndian.Uint16(type_)),
-		Class: Class(binary.BigEndian.Uint16(class)),
+		Type:  Type(byteOrder.Uint16(type_)),
+		Class: Class(byteOrder.Uint16(class)),
 	}, nil
 }
 
@@ -67,8 +66,8 @@ func (q Question) marshal() ([]byte, error) {
 	}
 	data = append(data, uint8(0))
 
-	data = binary.BigEndian.AppendUint16(data, uint16(q.Type))
-	data = binary.BigEndian.AppendUint16(data, uint16(q.Class))
+	data = byteOrder.AppendUint16(data, uint16(q.Type))
+	data = byteOrder.AppendUint16(data, uint16(q.Class))
 
 	return data, nil
 }

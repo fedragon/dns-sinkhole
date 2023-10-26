@@ -2,7 +2,6 @@ package message
 
 import (
 	"bufio"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"math"
@@ -60,17 +59,17 @@ func unmarshalRecord(r *bufio.Reader) (Record, error) {
 		return Record{}, err
 	}
 
-	data, err := read(r, int(binary.BigEndian.Uint16(length)))
+	data, err := read(r, int(byteOrder.Uint16(length)))
 	if err != nil {
 		return Record{}, err
 	}
 
 	return Record{
 		DomainName: strings.Join(parts, "."),
-		Type:       Type(binary.BigEndian.Uint16(type_)),
-		Class:      Class(binary.BigEndian.Uint16(class)),
-		TTL:        binary.BigEndian.Uint32(ttl),
-		Length:     binary.BigEndian.Uint16(length),
+		Type:       Type(byteOrder.Uint16(type_)),
+		Class:      Class(byteOrder.Uint16(class)),
+		TTL:        byteOrder.Uint32(ttl),
+		Length:     byteOrder.Uint16(length),
 		Data:       data,
 	}, nil
 }
@@ -88,10 +87,10 @@ func (r *Record) marshal() ([]byte, error) {
 	}
 	data = append(data, uint8(0))
 
-	data = binary.BigEndian.AppendUint16(data, uint16(r.Type))
-	data = binary.BigEndian.AppendUint16(data, uint16(r.Class))
-	data = binary.BigEndian.AppendUint32(data, r.TTL)
-	data = binary.BigEndian.AppendUint16(data, r.Length)
+	data = byteOrder.AppendUint16(data, uint16(r.Type))
+	data = byteOrder.AppendUint16(data, uint16(r.Class))
+	data = byteOrder.AppendUint32(data, r.TTL)
+	data = byteOrder.AppendUint16(data, r.Length)
 
 	return append(data, r.Data...), nil
 }
