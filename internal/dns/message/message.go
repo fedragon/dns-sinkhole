@@ -79,20 +79,8 @@ func ParseQuery(data []byte) (*Query, error) {
 		return nil, errors.New("no questions")
 	}
 
-	// ignore number of answers
-	_, err = read(r, 2)
-	if err != nil {
-		return nil, err
-	}
-
-	// ignore number of authorititatives
-	_, err = read(r, 2)
-	if err != nil {
-		return nil, err
-	}
-
-	// ignore number of additional
-	_, err = read(r, 2)
+	// skip the next 6 bytes (number of answers, authorities, and additional records - all zeroed in queries)
+	_, err = read(r, 6)
 	if err != nil {
 		return nil, err
 	}
