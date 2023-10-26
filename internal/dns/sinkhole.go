@@ -24,17 +24,18 @@ func NewSinkhole(logger *slog.Logger) *Sinkhole {
 }
 
 func (s *Sinkhole) Register(domain string) error {
-	d, ok := s.domains[domain]
+	d, err := NewDomain(domain)
+	if err != nil {
+		return err
+	}
+
+	found, ok := s.domains[d.name]
 	if !ok {
-		d, err := NewDomain(domain)
-		if err != nil {
-			return err
-		}
 		s.domains[d.name] = d
 		return nil
 	}
 
-	return d.Register(domain)
+	return found.Register(domain)
 }
 
 func (s *Sinkhole) Handle(query *message.Query) (*message.Response, bool) {
