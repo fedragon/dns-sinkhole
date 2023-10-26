@@ -55,17 +55,7 @@ func (s *Sinkhole) Handle(query *message.Query) (*message.Response, bool) {
 		return nil, false
 	}
 
-	idx := strings.LastIndex(question.Name, ".")
-	if idx == -1 {
-		return nil, false
-	}
-
-	d, ok := s.domains[question.Name[idx+1:]]
-	if !ok {
-		return nil, false
-	}
-
-	if d.Contains(question.Name) {
+	if s.Contains(question.Name) {
 		answer := message.Record{
 			DomainName: question.Name,
 			Type:       message.TypeA,

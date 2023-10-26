@@ -6,5 +6,5 @@ type Config struct {
 	HostsPath            string `envconfig:"HOSTS_PATH" default:"./hosts"`
 	DebugEndpointEnabled bool   `envconfig:"DEBUG_ENDPOINT_ENABLED" default:"true"`
 	MetricsEnabled       bool   `envconfig:"METRICS_ENABLED" default:"true"`
-	HttpAddr             string `envconfig:"HTTP_ADDR" default:"127.0.0.1:8000"`
+	HttpAddr             string `envconfig:"HTTP_ADDR" default:"0.0.0.0:8000"`
 }

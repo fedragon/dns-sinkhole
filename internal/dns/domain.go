@@ -40,12 +40,16 @@ func (d *Domain) Register(subdomain string) error {
 }
 
 func (d *Domain) Contains(name string) bool {
-	if d.name == name && len(d.children) == 0 {
-		return true
+	if len(d.children) == 0 {
+		return name == d.name
 	}
 
-	idx := strings.LastIndex(name, ".")
-	if idx == -1 {
+	parts := strings.Split(name, ".")
+	if len(parts) == 1 {
+		if d.name != name {
+			return false
+		}
+
 		if d.name != "www" && len(d.children) > 0 {
 			return d.children["@"] != nil
 		}
@@ -53,13 +57,13 @@ func (d *Domain) Contains(name string) bool {
 		return false
 	}
 
-	part := name[idx+1:]
+	part := parts[len(parts)-1]
 	if d.name != part {
 		return false
 	}
 
 	for _, child := range d.children {
-		if child.Contains(name[:idx]) {
+		if child.Contains(strings.Join(parts[:len(parts)-1], ".")) {
 			return true
 		}
 	}

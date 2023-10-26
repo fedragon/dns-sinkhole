@@ -1,18 +1,30 @@
 package dns
 
 import (
+	"bufio"
 	"log/slog"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/fedragon/sinkhole/internal/blacklist"
 )
 
-func TestSinkhole_Register(t *testing.T) {
+func TestSinkhole(t *testing.T) {
 	s := NewSinkhole(slog.Default())
+	file, err := os.Open("./test-hosts")
+	assert.NoError(t, err)
+	defer file.Close()
 
-	assert.NoError(t, s.Register("www.federico.is"))
-	assert.NoError(t, s.Register("www.github.is"))
+	for domain := range blacklist.Parse(bufio.NewScanner(file)) {
+		assert.NoError(t, s.Register(domain))
+	}
 
-	assert.True(t, s.Contains("www.federico.is"))
-	assert.True(t, s.Contains("www.github.is"))
+	for domain := range blacklist.Parse(bufio.NewScanner(file)) {
+		assert.True(t, s.Contains(domain))
+	}
+
+	assert.False(t, s.Contains("federico.is"))
+	assert.False(t, s.Contains("github.com"))
 }
