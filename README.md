@@ -1,16 +1,16 @@
 # sinkhole
 
-Acts as a DNS sinkhole, receiving DNS queries and returning non-routable addresses for blacklisted domains; legitimate DNS queries are forwarded to a (configurable) fallback DNS resolver.
+Acts as a [DNS sinkhole](https://en.wikipedia.org/wiki/DNS_sinkhole), receiving DNS queries and returning non-routable addresses for blacklisted domains; legitimate DNS queries are forwarded to a (configurable) fallback DNS resolver.
 
 It can (optionally) expose an HTTP endpoint to provide metrics to a Prometheus server (see configuration options).
 
 ## Motivation
 
-One day I started reading the [Running pi-hole on a Raspberry Pi](https://www.raspberrypi.com/tutorials/running-pi-hole-on-a-raspberry-pi/) tutorial... and writing my own DNS sinkhole sounded like an interesting pet project, so here we are.
+One day I started reading the [Running pi-hole on a Raspberry Pi](https://www.raspberrypi.com/tutorials/running-pi-hole-on-a-raspberry-pi/) tutorial and I thought that writing my own DNS sinkhole could be an interesting pet project, so here we are.
 
 ## Current limitations
 
-At the time of writing, the sinkhole can only resolve uncompressed, A-type, Internet-class queries containing a single question: any other query will be forwarded to the fallback DNS resolver.
+This service can currently only resolve A-type, IN-class queries received over UDP: any other query will be forwarded to the fallback DNS resolver.
 
 ## Usage
 
