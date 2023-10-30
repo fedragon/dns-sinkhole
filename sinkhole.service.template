@@ -1,0 +1,13 @@
+[Unit]
+Description=DNS Sinkhole
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Environment=HOSTS_PATH=/home/${RPI_USER}/hosts
+ExecStart=/home/${RPI_USER}/sinkhole
+Type=exec
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

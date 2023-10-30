@@ -1,5 +1,4 @@
-TODO.md
-bin/
+deploy/*
 
 *.bin
-hosts
+TODO.md
