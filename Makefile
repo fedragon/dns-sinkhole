@@ -11,7 +11,7 @@ RPI_USER ?= pi
 
 build:
 	@echo "GOOS=${GOOS}, GOARCH=${GOARCH}, GOARM=${GOARM}"
-	go build -o deploy/sinkhole cmd/main.go
+	go build -o deploy/hole cmd/main.go
 
 fetch:
 	curl -sSL "${HOSTS_URL}" -o deploy/hosts

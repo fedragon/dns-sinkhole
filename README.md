@@ -19,9 +19,7 @@ Choose your preferred version of Steven Black's Hosts [here](https://github.com/
 ### 1. Download hosts file
 
 ```shell
-export HOSTS_URL="<link to your chosen version of Steven Black Hosts file>"
-
-make fetch
+HOSTS_URL="<link to your chosen version of Steven Black Hosts file>" make fetch
 ```
 
 ### 2. Build
@@ -39,19 +37,19 @@ make build
 ### 3. Deploy to your target server (e.g. a Raspberry Pi)
 
 ```shell
-scp bin/sinkhole user@ip:
-scp hosts user@ip:
+RPI_USER=pi make generate-service               # generates systemd service pointing to an executable in the user's home directory
+RPI_HOST=raspberrypi RPI_USER=pi make deploy    # copies the required files to the RPi via scp```
 ```
 
 ### 3. Run
 
 ```shell
 # note: this command uses the following defaults:
-# SINKHOLE_ADDR="0.0.0.0:1153"    # address of the UDP server used to receive DNS queries
-# FALLBACK_ADDR="1.1.1.1:53"      # DNS recursive resolver for legitimate queries (default: Cloudflare's)
-# HOSTS_PATH="./hosts"            # path to the hosts file containing blacklisted domains
-# METRICS_ENABLED="true"          # expose endpoint for Prometheus metrics?
-# HTTP_ADDR="0.0.0.0:8000"        # address of the HTTP server (only started if METRICS_ENABLED=true)
+# DNS_SERVER_ADDR="0.0.0.0:1153"    # address of the UDP server used to receive DNS queries
+# DNS_FALLBACK_ADDR="1.1.1.1:53"    # DNS recursive resolver for legitimate queries (default: Cloudflare's)
+# HOSTS_PATH="./hosts"              # path to the hosts file containing blacklisted domains
+# METRICS_ENABLED="true"            # expose endpoint for Prometheus metrics?
+# HTTP_SERVER_ADDR="0.0.0.0:8000"   # address of the HTTP server (only started if METRICS_ENABLED=true)
 # overwrite any of them if/as needed using environment variables
 
 bin/sinkhole

@@ -1,4 +1,5 @@
 deploy/*
+!deploy/install.sh
 
 *.bin
 TODO.md

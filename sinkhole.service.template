@@ -4,8 +4,8 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-Environment=HOSTS_PATH=/home/${RPI_USER}/hosts
-ExecStart=/home/${RPI_USER}/sinkhole
+Environment=HOSTS_PATH=/home/${RPI_USER}/sink/hosts
+ExecStart=/home/${RPI_USER}/sink/bin/hole
 Type=exec
 Restart=on-failure
 
