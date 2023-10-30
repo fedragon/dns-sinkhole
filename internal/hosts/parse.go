@@ -1,4 +1,4 @@
-package blacklist
+package hosts
 
 import (
 	"bufio"
@@ -10,6 +10,7 @@ type Result struct {
 	Err    error
 }
 
+// Parse starts parsing a Steven Black hosts file and immediately returns a channel of Results, sending to it as parsing progresses.
 func Parse(scanner *bufio.Scanner) <-chan Result {
 	out := make(chan Result)
 

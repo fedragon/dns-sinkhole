@@ -6,11 +6,11 @@ import (
 )
 
 var (
-	BlacklistedDomains = promauto.NewGauge(
+	NonRoutableDomains = promauto.NewGauge(
 		p.GaugeOpts{
 			Namespace: "sinkhole",
-			Name:      "blacklisted_domains",
-			Help:      "The total number of blacklisted domains",
+			Name:      "non_routable_domains",
+			Help:      "The total number of domains that we don't want to resolve",
 		})
 
 	queries = promauto.NewCounterVec(

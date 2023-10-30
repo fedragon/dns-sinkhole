@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/fedragon/sinkhole/internal/blacklist"
+	"github.com/fedragon/sinkhole/internal/hosts"
 )
 
 func TestSinkhole(t *testing.T) {
@@ -17,12 +17,12 @@ func TestSinkhole(t *testing.T) {
 	assert.NoError(t, err)
 	defer file.Close()
 
-	for line := range blacklist.Parse(bufio.NewScanner(file)) {
+	for line := range hosts.Parse(bufio.NewScanner(file)) {
 		assert.NoError(t, line.Err)
 		assert.NoError(t, s.Register(line.Domain))
 	}
 
-	for line := range blacklist.Parse(bufio.NewScanner(file)) {
+	for line := range hosts.Parse(bufio.NewScanner(file)) {
 		assert.NoError(t, line.Err)
 		assert.True(t, s.Contains(line.Domain))
 	}

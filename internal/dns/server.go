@@ -1,4 +1,4 @@
-package internal
+package dns
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/fedragon/sinkhole/internal/dns"
 	"github.com/fedragon/sinkhole/internal/dns/message"
 	"github.com/fedragon/sinkhole/internal/metrics"
 )
@@ -19,16 +18,16 @@ const (
 )
 
 type Server struct {
-	sinkhole *dns.Sinkhole
+	sinkhole *Sinkhole
 	fallback io.ReadWriteCloser
 	logger   *slog.Logger
 }
 
-func NewServer(sinkhole *dns.Sinkhole, fallback io.ReadWriteCloser, logger *slog.Logger) *Server {
+func NewServer(sinkhole *Sinkhole, fallback io.ReadWriteCloser, logger *slog.Logger) *Server {
 	return &Server{
 		sinkhole: sinkhole,
 		fallback: fallback,
-		logger:   logger.With("source", "udp_server"),
+		logger:   logger.With("source", "dns_server"),
 	}
 }
 
@@ -78,7 +77,7 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 
 			response, handled := s.sinkhole.Resolve(query)
 			var rawResponse []byte
-			if handled {
+			if handled == ResolveSuccess {
 				metrics.BlockedQueries.Inc()
 
 				rawResponse, err = response.Marshal()
@@ -89,6 +88,24 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 				}
 			} else {
 				metrics.FallbackQueries.Inc()
+
+				switch handled {
+				case UnresolvedNonStandard:
+					metrics.NonStandardQueries.Inc()
+					s.logger.Debug("Passing non-standard query to fallback DNS resolver", "query", rawQuery)
+				case UnresolvedNonRecursive:
+					metrics.NonRecursiveQueries.Inc()
+					s.logger.Debug("Passing non-recursive query to fallback DNS resolver", "query", rawQuery)
+				case UnresolvedUnsupportedClass:
+					metrics.UnsupportedClassQueries.Inc()
+					s.logger.Debug("Passing unsupported class query to fallback DNS resolver", "query", rawQuery)
+				case UnresolvedUnsupportedType:
+					metrics.UnsupportedTypeQueries.Inc()
+					s.logger.Debug("Passing unsupported type query to fallback DNS resolver", "query", rawQuery)
+				case UnresolvedNotFound:
+					// nothing to do
+				}
+
 				rawResponse, err = s.queryFallbackDNS(rawQuery)
 				if err != nil {
 					metrics.FallbackErrors.Inc()
@@ -110,8 +127,7 @@ func (s *Server) queryFallbackDNS(buffer []byte) ([]byte, error) {
 	}
 
 	response := make([]byte, maxPacketSize)
-	_, err := s.fallback.Read(response)
-	if err != nil {
+	if _, err := s.fallback.Read(response); err != nil {
 		return nil, err
 	}
 

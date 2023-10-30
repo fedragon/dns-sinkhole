@@ -15,10 +15,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/fedragon/sinkhole/internal"
-	"github.com/fedragon/sinkhole/internal/blacklist"
 	"github.com/fedragon/sinkhole/internal/config"
 	"github.com/fedragon/sinkhole/internal/dns"
+	"github.com/fedragon/sinkhole/internal/hosts"
 	"github.com/fedragon/sinkhole/internal/metrics"
 	"github.com/fedragon/sinkhole/internal/udp"
 )
@@ -42,7 +41,7 @@ func main() {
 	}
 	defer fallback.Close()
 
-	logger.Debug("Reading blacklisted domains from hosts file", "path", cfg.HostsPath)
+	logger.Debug("Reading non-routable domains from hosts file", "path", cfg.HostsPath)
 
 	file, err := os.Open(cfg.HostsPath)
 	if err != nil {
@@ -57,9 +56,9 @@ func main() {
 	scanner.Split(bufio.ScanLines)
 
 	var count int
-	for line := range blacklist.Parse(scanner) {
+	for line := range hosts.Parse(scanner) {
 		if line.Err != nil {
-			logger.Error("Unable to parse blacklist file", "error", line.Err)
+			logger.Error("Unable to parse hosts file", "error", line.Err)
 			return
 		}
 
@@ -70,8 +69,8 @@ func main() {
 		count++
 	}
 
-	metrics.BlacklistedDomains.Set(float64(count))
-	logger.Debug("Finished registering blacklisted domains", "count", count)
+	metrics.NonRoutableDomains.Set(float64(count))
+	logger.Debug("Finished registering non-routable domains", "count", count)
 
 	group, gCtx := errgroup.WithContext(ctx)
 	if cfg.MetricsEnabled || cfg.DebugEndpointEnabled {
@@ -90,12 +89,12 @@ func main() {
 		}
 
 		httpServer := &http.Server{
-			Addr:    cfg.HttpAddr,
+			Addr:    cfg.HttpServerAddr,
 			Handler: &httpHandler,
 		}
 
 		group.Go(func() error {
-			logger.Debug("Starting HTTP server", "address", cfg.HttpAddr)
+			logger.Debug("Starting HTTP server", "address", cfg.HttpServerAddr)
 			return httpServer.ListenAndServe()
 		})
 		group.Go(func() error {
@@ -106,7 +105,7 @@ func main() {
 	}
 
 	group.Go(func() error {
-		return internal.NewServer(sinkhole, fallback, logger).Serve(gCtx, cfg.Addr)
+		return dns.NewServer(sinkhole, fallback, logger).Serve(gCtx, cfg.DnsServerAddr)
 	})
 
 	if err := group.Wait(); err != nil {
