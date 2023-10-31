@@ -21,13 +21,15 @@ type Server struct {
 	sinkhole *Sinkhole
 	fallback io.ReadWriteCloser
 	logger   *slog.Logger
+	audit    *slog.Logger
 }
 
-func NewServer(sinkhole *Sinkhole, fallback io.ReadWriteCloser, logger *slog.Logger) *Server {
+func NewServer(sinkhole *Sinkhole, fallback io.ReadWriteCloser, logger *slog.Logger, audit *slog.Logger) *Server {
 	return &Server{
 		sinkhole: sinkhole,
 		fallback: fallback,
 		logger:   logger.With("source", "dns_server"),
+		audit:    audit,
 	}
 }
 
@@ -89,10 +91,13 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 			} else {
 				metrics.FallbackQueries.Inc()
 
+				s.audit.Debug("Query", "query", rawQuery)
+
 				switch handled {
 				case UnresolvedNonStandard:
 					metrics.NonStandardQueries.Inc()
 					s.logger.Debug("Passing non-standard query to fallback DNS resolver", "query", rawQuery)
+					s.audit.Debug("Query", "query", rawQuery)
 				case UnresolvedNonRecursive:
 					metrics.NonRecursiveQueries.Inc()
 					s.logger.Debug("Passing non-recursive query to fallback DNS resolver", "query", rawQuery)
@@ -112,6 +117,8 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 					s.logger.Error("Unable to query fallback DNS", "raw_query", rawQuery, "error", err)
 					continue
 				}
+
+				s.audit.Debug("Response", "response", rawResponse)
 			}
 
 			if _, err := conn.WriteToUDP(rawResponse, addr); err != nil {

@@ -34,6 +34,14 @@ func main() {
 		return
 	}
 
+	auditFile, err := os.Open("audit.log")
+	if err != nil {
+		logger.Error("Unable to open audit log", "error", err)
+		return
+	}
+	defer auditFile.Close()
+	auditLogger := slog.New(slog.NewJSONHandler(auditFile, &slog.HandlerOptions{Level: slog.LevelDebug}))
+
 	fallback, err := udp.NewClient(cfg.FallbackAddr)
 	if err != nil {
 		logger.Error("Unable to connect to fallback DNS", "address", cfg.FallbackAddr, "error", err)
@@ -105,7 +113,7 @@ func main() {
 	}
 
 	group.Go(func() error {
-		return dns.NewServer(sinkhole, fallback, logger).Serve(gCtx, cfg.DnsServerAddr)
+		return dns.NewServer(sinkhole, fallback, logger, auditLogger).Serve(gCtx, cfg.DnsServerAddr)
 	})
 
 	if err := group.Wait(); err != nil {
