@@ -34,19 +34,6 @@ func main() {
 		return
 	}
 
-	var auditLogger *slog.Logger
-	if cfg.AuditLogEnabled {
-		auditFile, err := os.OpenFile("audit.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
-		if err != nil {
-			logger.Error("Unable to open audit.log file", "error", err)
-			return
-		}
-		defer auditFile.Close()
-		auditLogger = slog.New(slog.NewJSONHandler(auditFile, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	} else {
-		slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
-	}
-
 	upstream, err := udp.NewClient(cfg.UpstreamServerAddr)
 	if err != nil {
 		logger.Error("Unable to connect to upstream DNS", "address", cfg.UpstreamServerAddr, "error", err)
@@ -118,7 +105,7 @@ func main() {
 	}
 
 	group.Go(func() error {
-		return dns.NewServer(sinkhole, upstream, logger, auditLogger).Serve(gCtx, cfg.LocalServerAddr)
+		return dns.NewServer(sinkhole, upstream, logger).Serve(gCtx, cfg.LocalServerAddr)
 	})
 
 	if err := group.Wait(); err != nil {

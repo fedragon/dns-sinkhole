@@ -9,5 +9,4 @@ type Config struct {
 	HttpServerAddr       string `envconfig:"HTTP_SERVER_ADDR" default:"0.0.0.0:8000"`
 	DebugEndpointEnabled bool   `envconfig:"DEBUG_ENDPOINT_ENABLED" default:"false"`
 	MetricsEnabled       bool   `envconfig:"METRICS_ENABLED" default:"true"`
-	AuditLogEnabled      bool   `envconfig:"AUDIT_LOG_ENABLED" default:"false"`
 }

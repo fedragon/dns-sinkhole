@@ -21,15 +21,13 @@ type Server struct {
 	sinkhole *Sinkhole
 	upstream io.ReadWriteCloser
 	logger   *slog.Logger
-	audit    *slog.Logger
 }
 
-func NewServer(sinkhole *Sinkhole, upstream io.ReadWriteCloser, logger *slog.Logger, audit *slog.Logger) *Server {
+func NewServer(sinkhole *Sinkhole, upstream io.ReadWriteCloser, logger *slog.Logger) *Server {
 	return &Server{
 		sinkhole: sinkhole,
 		upstream: upstream,
 		logger:   logger.With("source", "dns_server"),
-		audit:    audit,
 	}
 }
 
@@ -91,13 +89,10 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 			} else {
 				metrics.UpstreamQueries.Inc()
 
-				s.audit.Debug("Query", "query", rawQuery)
-
 				switch handled {
 				case UnresolvedNonStandard:
 					metrics.NonStandardQueries.Inc()
 					s.logger.Debug("Passing non-standard query to upstream DNS resolver", "query", rawQuery)
-					s.audit.Debug("Query", "query", rawQuery)
 				case UnresolvedNonRecursive:
 					metrics.NonRecursiveQueries.Inc()
 					s.logger.Debug("Passing non-recursive query to upstream DNS resolver", "query", rawQuery)
@@ -117,8 +112,6 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 					s.logger.Error("Unable to query upstream DNS", "raw_query", rawQuery, "error", err)
 					continue
 				}
-
-				s.audit.Debug("Response", "response", rawResponse)
 			}
 
 			if _, err := conn.WriteToUDP(rawResponse, addr); err != nil {
