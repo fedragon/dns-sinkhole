@@ -10,18 +10,17 @@ RPI_HOST ?= raspberrypi
 RPI_USER ?= pi
 
 build:
-	@echo "GOOS=${GOOS}, GOARCH=${GOARCH}, GOARM=${GOARM}"
-	go build -o deploy/hole cmd/main.go
+	GOOS=${GOOS} GOARCH=${GOARCH} GOARM=${GOARM} go build -o deploy/hole cmd/main.go
 
 fetch:
-	curl -sSL "${HOSTS_URL}" -o deploy/hosts
+	HOSTS_URL="${HOSTS_URL}" curl -sSL "${HOSTS_URL}" -o deploy/hosts
 
 test:
 	go test -v -race -count=1 ./...
 
 generate-service:
 	@mkdir -p deploy
-	@envsubst < sinkhole.service.template > deploy/sinkhole.service
+	@RPI_USER=${RPI_USER} envsubst < templates/sinkhole.service > deploy/sinkhole.service
 
 deploy:
-	scp deploy/* "${RPI_USER}@${RPI_HOST}":
+	RPI_HOST=${RPI_HOST} RPI_USER=${RPI_USER} scp deploy/* "${RPI_USER}@${RPI_HOST}":
