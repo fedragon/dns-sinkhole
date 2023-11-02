@@ -1,6 +1,6 @@
 # sinkhole
 
-Acts as a [DNS sinkhole](https://en.wikipedia.org/wiki/DNS_sinkhole), receiving DNS queries and returning non-routable addresses for blacklisted domains; legitimate DNS queries are forwarded to a (configurable) fallback DNS resolver.
+Acts as a [DNS sinkhole](https://en.wikipedia.org/wiki/DNS_sinkhole), receiving DNS queries and returning non-routable addresses for blacklisted domains; legitimate DNS queries are forwarded to a (configurable) upstream DNS resolver.
 
 It can (optionally) expose an HTTP endpoint to provide metrics to a Prometheus server (see configuration options).
 
@@ -10,7 +10,7 @@ One day I started reading the [Running pi-hole on a Raspberry Pi](https://www.ra
 
 ## Current limitations
 
-This service can currently only resolve A-type, IN-class queries received over UDP: any other query will be forwarded to the fallback DNS resolver.
+This service can currently only resolve A-type, IN-class queries received over UDP: any other query will be forwarded to the upstream DNS resolver.
 
 ## Usage
 
@@ -45,8 +45,8 @@ RPI_HOST=raspberrypi RPI_USER=pi make deploy    # copies the required files to t
 
 ```shell
 # note: this command uses the following defaults:
-# DNS_SERVER_ADDR="0.0.0.0:1153"    # address of the UDP server used to receive DNS queries
-# DNS_FALLBACK_ADDR="1.1.1.1:53"    # DNS recursive resolver for legitimate queries (default: Cloudflare's)
+# LOCAL_SERVER_ADDR="0.0.0.0:1153"    # address of the UDP server used to receive DNS queries
+# UPSTREAM_SERVER_ADDR="1.1.1.1:53"   # DNS recursive resolver for legitimate queries (default: Cloudflare's)
 # HOSTS_PATH="./hosts"              # path to the hosts file containing blacklisted domains
 # METRICS_ENABLED="true"            # expose endpoint for Prometheus metrics?
 # HTTP_SERVER_ADDR="0.0.0.0:8000"   # address of the HTTP server (only started if METRICS_ENABLED=true)

@@ -34,20 +34,25 @@ func main() {
 		return
 	}
 
-	auditFile, err := os.Open("audit.log")
-	if err != nil {
-		logger.Error("Unable to open audit log", "error", err)
-		return
+	var auditLogger *slog.Logger
+	if cfg.AuditLogEnabled {
+		auditFile, err := os.OpenFile("audit.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
+		if err != nil {
+			logger.Error("Unable to open audit.log file", "error", err)
+			return
+		}
+		defer auditFile.Close()
+		auditLogger = slog.New(slog.NewJSONHandler(auditFile, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	} else {
+		slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	}
-	defer auditFile.Close()
-	auditLogger := slog.New(slog.NewJSONHandler(auditFile, &slog.HandlerOptions{Level: slog.LevelDebug}))
 
-	fallback, err := udp.NewClient(cfg.FallbackAddr)
+	upstream, err := udp.NewClient(cfg.UpstreamServerAddr)
 	if err != nil {
-		logger.Error("Unable to connect to fallback DNS", "address", cfg.FallbackAddr, "error", err)
+		logger.Error("Unable to connect to upstream DNS", "address", cfg.UpstreamServerAddr, "error", err)
 		return
 	}
-	defer fallback.Close()
+	defer upstream.Close()
 
 	logger.Debug("Reading non-routable domains from hosts file", "path", cfg.HostsPath)
 
@@ -113,7 +118,7 @@ func main() {
 	}
 
 	group.Go(func() error {
-		return dns.NewServer(sinkhole, fallback, logger, auditLogger).Serve(gCtx, cfg.DnsServerAddr)
+		return dns.NewServer(sinkhole, upstream, logger, auditLogger).Serve(gCtx, cfg.LocalServerAddr)
 	})
 
 	if err := group.Wait(); err != nil {

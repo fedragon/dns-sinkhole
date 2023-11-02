@@ -19,15 +19,15 @@ const (
 
 type Server struct {
 	sinkhole *Sinkhole
-	fallback io.ReadWriteCloser
+	upstream io.ReadWriteCloser
 	logger   *slog.Logger
 	audit    *slog.Logger
 }
 
-func NewServer(sinkhole *Sinkhole, fallback io.ReadWriteCloser, logger *slog.Logger, audit *slog.Logger) *Server {
+func NewServer(sinkhole *Sinkhole, upstream io.ReadWriteCloser, logger *slog.Logger, audit *slog.Logger) *Server {
 	return &Server{
 		sinkhole: sinkhole,
-		fallback: fallback,
+		upstream: upstream,
 		logger:   logger.With("source", "dns_server"),
 		audit:    audit,
 	}
@@ -89,32 +89,32 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 					continue
 				}
 			} else {
-				metrics.FallbackQueries.Inc()
+				metrics.UpstreamQueries.Inc()
 
 				s.audit.Debug("Query", "query", rawQuery)
 
 				switch handled {
 				case UnresolvedNonStandard:
 					metrics.NonStandardQueries.Inc()
-					s.logger.Debug("Passing non-standard query to fallback DNS resolver", "query", rawQuery)
+					s.logger.Debug("Passing non-standard query to upstream DNS resolver", "query", rawQuery)
 					s.audit.Debug("Query", "query", rawQuery)
 				case UnresolvedNonRecursive:
 					metrics.NonRecursiveQueries.Inc()
-					s.logger.Debug("Passing non-recursive query to fallback DNS resolver", "query", rawQuery)
+					s.logger.Debug("Passing non-recursive query to upstream DNS resolver", "query", rawQuery)
 				case UnresolvedUnsupportedClass:
 					metrics.UnsupportedClassQueries.Inc()
-					s.logger.Debug("Passing unsupported class query to fallback DNS resolver", "query", rawQuery)
+					s.logger.Debug("Passing unsupported class query to upstream DNS resolver", "query", rawQuery)
 				case UnresolvedUnsupportedType:
 					metrics.UnsupportedTypeQueries.Inc()
-					s.logger.Debug("Passing unsupported type query to fallback DNS resolver", "query", rawQuery)
+					s.logger.Debug("Passing unsupported type query to upstream DNS resolver", "query", rawQuery)
 				case UnresolvedNotFound:
 					// nothing to do
 				}
 
-				rawResponse, err = s.queryFallbackDNS(rawQuery)
+				rawResponse, err = s.queryUpstreamServer(rawQuery)
 				if err != nil {
-					metrics.FallbackErrors.Inc()
-					s.logger.Error("Unable to query fallback DNS", "raw_query", rawQuery, "error", err)
+					metrics.UpstreamErrors.Inc()
+					s.logger.Error("Unable to query upstream DNS", "raw_query", rawQuery, "error", err)
 					continue
 				}
 
@@ -128,13 +128,13 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 	}
 }
 
-func (s *Server) queryFallbackDNS(buffer []byte) ([]byte, error) {
-	if _, err := s.fallback.Write(buffer); err != nil {
+func (s *Server) queryUpstreamServer(buffer []byte) ([]byte, error) {
+	if _, err := s.upstream.Write(buffer); err != nil {
 		return nil, err
 	}
 
 	response := make([]byte, maxPacketSize)
-	if _, err := s.fallback.Read(response); err != nil {
+	if _, err := s.upstream.Read(response); err != nil {
 		return nil, err
 	}
 

@@ -2,12 +2,19 @@
 Description=DNS Sinkhole
 Wants=network-online.target
 After=network-online.target
+Wants=nss-lookup.target
+Before=nss-lookup.target
 
 [Service]
 Environment=HOSTS_PATH=/home/${RPI_USER}/sink/hosts
 ExecStart=/home/${RPI_USER}/sink/bin/hole
 Type=exec
 Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=5s
+
+ProtectSystem=full
+ReadWriteDirectories=/home/${RPI_USER}/sink
 
 [Install]
 WantedBy=multi-user.target

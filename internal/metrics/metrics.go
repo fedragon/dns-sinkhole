@@ -22,7 +22,7 @@ var (
 		[]string{"blocked"})
 
 	BlockedQueries  = queries.With(p.Labels{"blocked": "true"})
-	FallbackQueries = queries.With(p.Labels{"blocked": "false"})
+	UpstreamQueries = queries.With(p.Labels{"blocked": "false"})
 
 	discardedQueries = promauto.NewCounterVec(
 		p.CounterOpts{
@@ -53,11 +53,11 @@ var (
 		},
 	)
 
-	FallbackErrors = promauto.NewCounter(
+	UpstreamErrors = promauto.NewCounter(
 		p.CounterOpts{
 			Namespace: "sinkhole",
-			Name:      "fallback_errors",
-			Help:      "The total number of fallback errors",
+			Name:      "upstream_errors",
+			Help:      "The total number of errors encountered in the upstream DNS server",
 		},
 	)
 )
