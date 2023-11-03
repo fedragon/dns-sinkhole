@@ -9,14 +9,14 @@ var (
 	NonRoutableDomains = promauto.NewGauge(
 		p.GaugeOpts{
 			Namespace: "sinkhole",
-			Name:      "non_routable_domains",
+			Name:      "non_routable_domains_total",
 			Help:      "The total number of domains that we don't want to resolve",
 		})
 
 	queries = promauto.NewCounterVec(
 		p.CounterOpts{
 			Namespace: "sinkhole",
-			Name:      "queries",
+			Name:      "queries_total",
 			Help:      "The total number of queries",
 		},
 		[]string{"blocked"})
@@ -24,23 +24,41 @@ var (
 	BlockedQueries  = queries.With(p.Labels{"blocked": "true"})
 	UpstreamQueries = queries.With(p.Labels{"blocked": "false"})
 
-	discardedQueries = promauto.NewCounterVec(
+	NonRecursiveQueries = promauto.NewCounter(
 		p.CounterOpts{
 			Namespace: "sinkhole",
-			Name:      "discarded_queries",
-			Help:      "The total number of discarded queries",
-		},
-		[]string{"reason"})
+			Name:      "non_recursive_queries_total",
+			Help:      "The total number of queries that were discarded due to being non-recursive",
+		})
 
-	NonStandardQueries      = discardedQueries.With(p.Labels{"reason": "non-standard"})
-	NonRecursiveQueries     = discardedQueries.With(p.Labels{"reason": "non-recursive"})
-	UnsupportedClassQueries = discardedQueries.With(p.Labels{"reason": "unsupported-class"})
-	UnsupportedTypeQueries  = discardedQueries.With(p.Labels{"reason": "unsupported-type"})
+	UnsupportedOpCodeQueries = promauto.NewCounterVec(
+		p.CounterOpts{
+			Namespace: "sinkhole",
+			Name:      "unsupported_op_code_queries_total",
+			Help:      "The total number of queries with unsupported opcode",
+		},
+		[]string{"opcode"})
+
+	UnsupportedClassQueries = promauto.NewCounterVec(
+		p.CounterOpts{
+			Namespace: "sinkhole",
+			Name:      "unsupported_class_queries_total",
+			Help:      "The total number of queries with unsupported class",
+		},
+		[]string{"class"})
+
+	UnsupportedTypeQueries = promauto.NewCounterVec(
+		p.CounterOpts{
+			Namespace: "sinkhole",
+			Name:      "unsupported_type_queries_total",
+			Help:      "The total number of queries with unsupported type",
+		},
+		[]string{"type"})
 
 	QueryParsingErrors = promauto.NewCounter(
 		p.CounterOpts{
 			Namespace: "sinkhole",
-			Name:      "query_parsing_errors",
+			Name:      "query_parsing_errors_total",
 			Help:      "The total number of query parsing errors",
 		},
 	)
@@ -48,7 +66,7 @@ var (
 	ResponseMarshallingErrors = promauto.NewCounter(
 		p.CounterOpts{
 			Namespace: "sinkhole",
-			Name:      "response_marshalling_errors",
+			Name:      "response_marshalling_errors_total",
 			Help:      "The total number of response marshalling errors",
 		},
 	)
@@ -56,8 +74,16 @@ var (
 	UpstreamErrors = promauto.NewCounter(
 		p.CounterOpts{
 			Namespace: "sinkhole",
-			Name:      "upstream_errors",
+			Name:      "upstream_errors_total",
 			Help:      "The total number of errors encountered in the upstream DNS server",
+		},
+	)
+
+	WriteResponseErrors = promauto.NewCounter(
+		p.CounterOpts{
+			Namespace: "sinkhole",
+			Name:      "write_response_errors_total",
+			Help:      "The total number of errors encountered when writing a response to the client",
 		},
 	)
 )

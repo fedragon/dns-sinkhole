@@ -2,9 +2,13 @@ package dns
 
 import (
 	"log/slog"
+	"strconv"
 	"strings"
 
+	p "github.com/prometheus/client_golang/prometheus"
+
 	"github.com/fedragon/sinkhole/internal/dns/message"
+	"github.com/fedragon/sinkhole/internal/metrics"
 )
 
 var (
@@ -54,20 +58,24 @@ func (s *Sinkhole) Register(domain string) error {
 // Resolve resolves a query to a non-routable address, if the domain belongs to its registry.
 func (s *Sinkhole) Resolve(query *message.Query) (*message.Response, ResolveResult) {
 	if query.OpCode() != 0 {
+		metrics.UnsupportedOpCodeQueries.With(p.Labels{"opcode": strconv.Itoa(int(query.OpCode()))}).Inc()
 		return nil, UnresolvedNonStandard
 	}
 
 	if !query.IsRecursionDesired() {
+		metrics.NonRecursiveQueries.Inc()
 		return nil, UnresolvedNonRecursive
 	}
 
 	var answers []message.Record
 	for _, question := range query.Questions() {
 		if question.Class != message.ClassInternetAddress {
+			metrics.UnsupportedClassQueries.With(p.Labels{"class": strconv.Itoa(int(question.Class))}).Inc()
 			return nil, UnresolvedUnsupportedClass
 		}
 
 		if question.Type != message.TypeA {
+			metrics.UnsupportedTypeQueries.With(p.Labels{"type": strconv.Itoa(int(question.Type))}).Inc()
 			return nil, UnresolvedUnsupportedType
 		}
 

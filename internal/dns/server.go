@@ -91,16 +91,12 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 
 				switch handled {
 				case UnresolvedNonStandard:
-					metrics.NonStandardQueries.Inc()
 					s.logger.Debug("Passing non-standard query to upstream DNS resolver", "query", rawQuery)
 				case UnresolvedNonRecursive:
-					metrics.NonRecursiveQueries.Inc()
 					s.logger.Debug("Passing non-recursive query to upstream DNS resolver", "query", rawQuery)
 				case UnresolvedUnsupportedClass:
-					metrics.UnsupportedClassQueries.Inc()
 					s.logger.Debug("Passing unsupported class query to upstream DNS resolver", "query", rawQuery)
 				case UnresolvedUnsupportedType:
-					metrics.UnsupportedTypeQueries.Inc()
 					s.logger.Debug("Passing unsupported type query to upstream DNS resolver", "query", rawQuery)
 				case UnresolvedNotFound:
 					// nothing to do
@@ -115,6 +111,7 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 			}
 
 			if _, err := conn.WriteToUDP(rawResponse, addr); err != nil {
+				metrics.WriteResponseErrors.Inc()
 				return err
 			}
 		}
