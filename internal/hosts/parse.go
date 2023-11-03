@@ -10,6 +10,8 @@ type Result struct {
 	Err    error
 }
 
+const marker = "# start stevenblack"
+
 // Parse starts parsing a Steven Black hosts file and immediately returns a channel of Results, sending to it as parsing progresses.
 func Parse(scanner *bufio.Scanner) <-chan Result {
 	out := make(chan Result)
@@ -22,7 +24,7 @@ func Parse(scanner *bufio.Scanner) <-chan Result {
 			line := strings.TrimSpace(scanner.Text())
 
 			if !started {
-				if strings.ToLower(line) == "# start stevenblack" {
+				if strings.ToLower(line) == marker {
 					started = true
 					continue
 				}
