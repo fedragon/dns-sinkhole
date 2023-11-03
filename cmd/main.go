@@ -19,7 +19,7 @@ import (
 	"github.com/fedragon/sinkhole/internal/dns"
 	"github.com/fedragon/sinkhole/internal/hosts"
 	"github.com/fedragon/sinkhole/internal/metrics"
-	"github.com/fedragon/sinkhole/internal/udp"
+	"github.com/fedragon/sinkhole/internal/upstream"
 )
 
 func main() {
@@ -34,9 +34,9 @@ func main() {
 		return
 	}
 
-	upstream, err := udp.NewClient(cfg.UpstreamServerAddr)
+	upstream, err := upstream.NewClient(cfg.UpstreamServerAddr)
 	if err != nil {
-		logger.Error("Unable to connect to upstream DNS", "address", cfg.UpstreamServerAddr, "error", err)
+		logger.Error("Unable to connect to upstream DNS resolver", "address", cfg.UpstreamServerAddr, "error", err)
 		return
 	}
 	defer upstream.Close()
