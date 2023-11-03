@@ -22,6 +22,8 @@ import (
 	"github.com/fedragon/sinkhole/internal/upstream"
 )
 
+var Version = "dev"
+
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM)
 	defer cancel()
@@ -87,6 +89,10 @@ func main() {
 		if cfg.MetricsEnabled {
 			httpHandler.Handle("/metrics", promhttp.Handler())
 		}
+
+		httpHandler.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
+			_, _ = w.Write([]byte(Version))
+		})
 
 		httpServer := &http.Server{
 			Addr:    cfg.HttpServerAddr,

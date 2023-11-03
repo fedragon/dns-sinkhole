@@ -9,17 +9,22 @@ HOSTS_URL ?= https://raw.githubusercontent.com/StevenBlack/hosts/master/alternat
 RPI_HOST ?= raspberrypi
 RPI_USER ?= pi
 
-build:
-	GOOS=${GOOS} GOARCH=${GOARCH} GOARM=${GOARM} go build -o deploy/hole cmd/main.go
+VERSION ?= $(shell date +%Y%m%dT%H%M%S)
 
-fetch:
+pre:
+	@mkdir -p deploy
+
+build: pre
+	@echo "Building version ${VERSION}"
+	@GOOS=${GOOS} GOARCH=${GOARCH} GOARM=${GOARM} go build -ldflags="-X 'main.Version=${VERSION}'" -o deploy/hole cmd/main.go
+
+fetch: pre
 	HOSTS_URL="${HOSTS_URL}" curl -sSL "${HOSTS_URL}" -o deploy/hosts
 
 test:
 	go test -v -race -count=1 ./...
 
-generate-service:
-	@mkdir -p deploy
+generate-service: pre
 	@RPI_USER=${RPI_USER} envsubst < templates/sinkhole.service > deploy/sinkhole.service
 
 deploy:
