@@ -100,7 +100,9 @@ func main() {
 		group.Go(func() error {
 			<-gCtx.Done()
 			logger.Debug("Shutting down HTTP server")
-			return httpServer.Shutdown(context.Background())
+			sctx, scancel := context.WithTimeout(context.Background(), cfg.HttpShutdownTimeout)
+			defer scancel()
+			return httpServer.Shutdown(sctx)
 		})
 	}
 
