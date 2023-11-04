@@ -1,12 +1,14 @@
 package message
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Response struct {
 	id        uint16
 	flags     uint16
 	questions []Question
-	answers   []Record
+	Answers   []Record
 }
 
 func NewResponse(query *Query, answers []Record) *Response {
@@ -18,25 +20,37 @@ func NewResponse(query *Query, answers []Record) *Response {
 	flags |= 1 << 7 // RecursionAvailable: 1
 
 	res := &Response{
-		id:        query.id,
+		id:        query.ID(),
 		flags:     flags,
 		questions: query.Questions(),
-		answers:   answers,
+		Answers:   answers,
 	}
 
 	return res
 }
 
-func (m *Response) Marshal() ([]byte, error) {
+func (r *Response) ID() uint16 {
+	return r.id
+}
+
+func (r *Response) IsRecursionDesired() bool {
+	return (r.flags&recursionDesiredMask)>>8 == 1
+}
+
+func (r *Response) IsRecursionAvailable() bool {
+	return (r.flags&recursionAvailableMask)>>7 == 1
+}
+
+func (r *Response) Marshal() ([]byte, error) {
 	var data []byte
-	data = byteOrder.AppendUint16(data, m.id)
-	data = byteOrder.AppendUint16(data, m.flags)
-	data = byteOrder.AppendUint16(data, uint16(len(m.questions)))
-	data = byteOrder.AppendUint16(data, uint16(len(m.answers)))
+	data = byteOrder.AppendUint16(data, r.id)
+	data = byteOrder.AppendUint16(data, r.flags)
+	data = byteOrder.AppendUint16(data, uint16(len(r.questions)))
+	data = byteOrder.AppendUint16(data, uint16(len(r.Answers)))
 	data = byteOrder.AppendUint16(data, 0) // number of authoritative records
 	data = byteOrder.AppendUint16(data, 0) // number of additional records
 
-	for _, q := range m.questions {
+	for _, q := range r.questions {
 		buf, err := q.marshal()
 		if err != nil {
 			return nil, err
@@ -44,7 +58,7 @@ func (m *Response) Marshal() ([]byte, error) {
 		data = append(data, buf...)
 	}
 
-	for _, r := range m.answers {
+	for _, r := range r.Answers {
 		buf, err := r.marshal()
 		if err != nil {
 			return nil, err

@@ -68,7 +68,7 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 				continue
 			}
 
-			query, err := message.ParseQuery(rawQuery)
+			query, err := message.UnmarshalQuery(rawQuery)
 			if err != nil {
 				metrics.QueryParsingErrors.Inc()
 				s.logger.Error("Unable to parse query", "error", err)

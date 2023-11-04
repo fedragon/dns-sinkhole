@@ -16,9 +16,10 @@ const (
 
 	TypeA Type = 1
 
-	queryMask            = 0b1000_0000_0000_0000
-	opCodeMask           = 0b0111_1000_0000_0000
-	recursionDesiredMask = 0b0000_0001_0000_0000
+	queryMask              = 0b1000_0000_0000_0000
+	opCodeMask             = 0b0111_1000_0000_0000
+	recursionDesiredMask   = 0b0000_0001_0000_0000
+	recursionAvailableMask = 0b0000_0000_1000_0000
 )
 
 var (
@@ -48,7 +49,7 @@ func (q *Query) Questions() []Question {
 	return q.questions
 }
 
-func ParseQuery(data []byte) (*Query, error) {
+func UnmarshalQuery(data []byte) (*Query, error) {
 	if len(data) < 12 {
 		return nil, ErrTooShort
 	}
@@ -85,7 +86,7 @@ func ParseQuery(data []byte) (*Query, error) {
 		return nil, err
 	}
 
-	questions, err := parseQuestions(r, numQuestions)
+	questions, err := unmarshalQuestions(r, numQuestions)
 	if err != nil {
 		return nil, err
 	}
@@ -105,19 +106,4 @@ func read(r io.Reader, n int) ([]byte, error) {
 	}
 
 	return res, nil
-}
-
-func parseQuestions(r *bufio.Reader, n uint16) ([]Question, error) {
-	var questions []Question
-
-	for i := 0; i < int(n); i++ {
-		q, err := unmarshalQuestion(r)
-		if err != nil {
-			return nil, err
-		}
-
-		questions = append(questions, q)
-	}
-
-	return questions, nil
 }

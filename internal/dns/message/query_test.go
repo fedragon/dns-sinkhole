@@ -23,7 +23,7 @@ func TestQuery_Identification(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			m, err := ParseQuery(c.data)
+			m, err := UnmarshalQuery(c.data)
 			assert.NoError(t, err)
 			assert.Equal(t, c.expected, m.id)
 		})
@@ -50,7 +50,7 @@ func TestQuery_OpCode(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			m, err := ParseQuery(c.data)
+			m, err := UnmarshalQuery(c.data)
 			assert.NoError(t, err)
 			assert.Equal(t, c.expected, m.OpCode())
 		})
@@ -77,7 +77,7 @@ func TestQuery_IsRecursionDesired(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			m, err := ParseQuery(c.data)
+			m, err := UnmarshalQuery(c.data)
 			assert.NoError(t, err)
 			assert.Equal(t, c.expected, m.IsRecursionDesired())
 		})

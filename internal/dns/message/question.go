@@ -71,3 +71,18 @@ func (q Question) marshal() ([]byte, error) {
 
 	return data, nil
 }
+
+func unmarshalQuestions(r *bufio.Reader, n uint16) ([]Question, error) {
+	var questions []Question
+
+	for i := 0; i < int(n); i++ {
+		q, err := unmarshalQuestion(r)
+		if err != nil {
+			return nil, err
+		}
+
+		questions = append(questions, q)
+	}
+
+	return questions, nil
+}
