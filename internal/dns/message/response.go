@@ -11,7 +11,7 @@ type Response struct {
 	Answers   []Record
 }
 
-func NewResponse(query *Query, answers []Record) *Response {
+func NewResponse(query *Query, answer Record) *Response {
 	var flags uint16
 	flags |= 1 << 15 // QueryResponse: 1 for Response
 	if query.IsRecursionDesired() {
@@ -23,7 +23,7 @@ func NewResponse(query *Query, answers []Record) *Response {
 		id:        query.ID(),
 		flags:     flags,
 		questions: []Question{query.Question()},
-		Answers:   answers,
+		Answers:   []Record{answer},
 	}
 
 	return res

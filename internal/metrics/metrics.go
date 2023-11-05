@@ -20,9 +20,40 @@ var (
 			Help:      "The total number of queries",
 		},
 		[]string{"blocked"})
-
 	BlockedQueries  = queries.With(p.Labels{"blocked": "true"})
 	UpstreamQueries = queries.With(p.Labels{"blocked": "false"})
+
+	ResponseTimesTotal = promauto.NewSummary(
+		p.SummaryOpts{
+			Namespace:  "sinkhole",
+			Name:       "response_times_total_milliseconds",
+			Help:       "The distribution of response times, in milliseconds",
+			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+		})
+
+	ResponseTimesInternalResolve = promauto.NewSummary(
+		p.SummaryOpts{
+			Namespace:  "sinkhole",
+			Name:       "response_times_resolve_milliseconds",
+			Help:       "The distribution of response times for resolving a domain in the sinkhole, in milliseconds",
+			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+		})
+
+	ResponseTimesUpstreamResolve = promauto.NewSummary(
+		p.SummaryOpts{
+			Namespace:  "sinkhole",
+			Name:       "response_times_upstream_resolve_milliseconds",
+			Help:       "The distribution of response times for resolving a domain in the upstream, in milliseconds",
+			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+		})
+
+	ResponseTimesWriteResponse = promauto.NewSummary(
+		p.SummaryOpts{
+			Namespace:  "sinkhole",
+			Name:       "response_times_write_udp_response_milliseconds",
+			Help:       "The distribution of response times for writing a response to the UDP socket, in milliseconds",
+			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+		})
 
 	SupportedQueries = promauto.NewCounterVec(
 		p.CounterOpts{

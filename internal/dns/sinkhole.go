@@ -56,7 +56,6 @@ func (s *Sinkhole) Resolve(query *message.Query) (*message.Response, bool) {
 		return nil, false
 	}
 
-	var answers []message.Record
 	question := query.Question()
 	if question.Class != message.ClassInternetAddress {
 		metrics.UnsupportedClassQueries.With(p.Labels{"class": strconv.Itoa(int(question.Class))}).Inc()
@@ -80,11 +79,7 @@ func (s *Sinkhole) Resolve(query *message.Query) (*message.Response, bool) {
 			Data:       nonRoutableAddress,
 		}
 
-		answers = append(answers, answer)
-	}
-
-	if len(answers) > 0 {
-		return message.NewResponse(query, answers), true
+		return message.NewResponse(query, answer), true
 	}
 
 	return nil, false
@@ -92,6 +87,9 @@ func (s *Sinkhole) Resolve(query *message.Query) (*message.Response, bool) {
 
 // Contains returns true if the domain belongs to the sinkhole's registry
 func (s *Sinkhole) Contains(domain string) bool {
+	timer := p.NewTimer(metrics.ResponseTimesInternalResolve)
+	defer timer.ObserveDuration()
+
 	idx := strings.LastIndex(domain, ".")
 	if idx == -1 {
 		return false
