@@ -79,6 +79,8 @@ func (s *Sinkhole) Resolve(query *message.Query) (*message.Response, ResolveResu
 			return nil, UnresolvedUnsupportedType
 		}
 
+		metrics.SupportedQueries.With(p.Labels{"type": strconv.Itoa(int(question.Type))}).Inc()
+
 		if s.Contains(question.Name) {
 			answer := message.Record{
 				DomainName: question.Name,

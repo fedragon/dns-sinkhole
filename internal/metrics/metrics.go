@@ -24,6 +24,14 @@ var (
 	BlockedQueries  = queries.With(p.Labels{"blocked": "true"})
 	UpstreamQueries = queries.With(p.Labels{"blocked": "false"})
 
+	SupportedQueries = promauto.NewCounterVec(
+		p.CounterOpts{
+			Namespace: "sinkhole",
+			Name:      "supported_queries_total",
+			Help:      "The total number of queries with supported type",
+		},
+		[]string{"type"})
+
 	NonRecursiveQueries = promauto.NewCounter(
 		p.CounterOpts{
 			Namespace: "sinkhole",
