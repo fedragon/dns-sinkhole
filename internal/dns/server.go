@@ -80,7 +80,7 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 
 			response, handled := s.sinkhole.Resolve(query)
 			var rawResponse []byte
-			if handled == ResolveSuccess {
+			if handled {
 				metrics.BlockedQueries.Inc()
 
 				rawResponse, err = response.Marshal()
@@ -91,19 +91,6 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 				}
 			} else {
 				metrics.UpstreamQueries.Inc()
-
-				switch handled {
-				case UnresolvedNonStandard:
-					s.logger.Debug("Passing non-standard query to upstream DNS resolver")
-				case UnresolvedNonRecursive:
-					s.logger.Debug("Passing non-recursive query to upstream DNS resolver")
-				case UnresolvedUnsupportedClass:
-					s.logger.Debug("Passing unsupported class query to upstream DNS resolver")
-				case UnresolvedUnsupportedType:
-					s.logger.Debug("Passing unsupported type query to upstream DNS resolver")
-				case UnresolvedNotFound:
-					// nothing to do
-				}
 
 				rawResponse, err = s.queryUpstreamServer(rawQuery)
 				if err != nil {

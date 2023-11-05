@@ -15,17 +15,6 @@ var (
 	nonRoutableAddress = []byte{0x00, 0x2A} // "0.0.0.42"
 )
 
-type ResolveResult int
-
-const (
-	ResolveSuccess ResolveResult = iota
-	UnresolvedNotFound
-	UnresolvedNonStandard
-	UnresolvedNonRecursive
-	UnresolvedUnsupportedClass
-	UnresolvedUnsupportedType
-)
-
 // Sinkhole is a DNS server that receives queries and, if they are related to domains belonging to its internal registry, resolves them to non-routable addresses.
 type Sinkhole struct {
 	registry map[string]*Domain
@@ -56,27 +45,27 @@ func (s *Sinkhole) Register(domain string) error {
 }
 
 // Resolve resolves a query to a non-routable address, if the domain belongs to its registry.
-func (s *Sinkhole) Resolve(query *message.Query) (*message.Response, ResolveResult) {
+func (s *Sinkhole) Resolve(query *message.Query) (*message.Response, bool) {
 	if query.OpCode() != 0 {
 		metrics.UnsupportedOpCodeQueries.With(p.Labels{"opcode": strconv.Itoa(int(query.OpCode()))}).Inc()
-		return nil, UnresolvedNonStandard
+		return nil, false
 	}
 
 	if !query.IsRecursionDesired() {
 		metrics.NonRecursiveQueries.Inc()
-		return nil, UnresolvedNonRecursive
+		return nil, false
 	}
 
 	var answers []message.Record
 	for _, question := range query.Questions() {
 		if question.Class != message.ClassInternetAddress {
 			metrics.UnsupportedClassQueries.With(p.Labels{"class": strconv.Itoa(int(question.Class))}).Inc()
-			return nil, UnresolvedUnsupportedClass
+			return nil, false
 		}
 
 		if question.Type != message.TypeA {
 			metrics.UnsupportedTypeQueries.With(p.Labels{"type": strconv.Itoa(int(question.Type))}).Inc()
-			return nil, UnresolvedUnsupportedType
+			return nil, false
 		}
 
 		metrics.SupportedQueries.With(p.Labels{"type": strconv.Itoa(int(question.Type))}).Inc()
@@ -96,10 +85,10 @@ func (s *Sinkhole) Resolve(query *message.Query) (*message.Response, ResolveResu
 	}
 
 	if len(answers) > 0 {
-		return message.NewResponse(query, answers), ResolveSuccess
+		return message.NewResponse(query, answers), true
 	}
 
-	return nil, UnresolvedNotFound
+	return nil, false
 }
 
 // Contains returns true if the domain belongs to the sinkhole's registry
