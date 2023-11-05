@@ -14,6 +14,8 @@ AUDIT_LOG_ENABLED ?= false
 
 VERSION ?= $(shell date +%Y%m%dT%H%M%S)
 
+all: build fetch generate-service deploy
+
 pre:
 	@mkdir -p deploy
 
