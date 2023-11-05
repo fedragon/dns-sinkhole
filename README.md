@@ -29,7 +29,7 @@ HOSTS_URL="<link to your chosen version of Steven Black Hosts file>" make fetch
 GOOS=linux GOARCH=arm GOARM=6 make build
 
 # generate systemd service pointing to an executable in the user's home directory
-RPI_USER=pi make generate-service               
+RPI_USER=pi METRICS_ENABLED=false AUDIT_LOG_ENABLED=false make generate-service               
 ```
 
 ### 3. Deploy to your target server (e.g. a Raspberry Pi)
