@@ -22,7 +22,7 @@ func NewResponse(query *Query, answers []Record) *Response {
 	res := &Response{
 		id:        query.ID(),
 		flags:     flags,
-		questions: query.Questions(),
+		questions: []Question{query.Question()},
 		Answers:   answers,
 	}
 

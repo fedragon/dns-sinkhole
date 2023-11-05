@@ -28,9 +28,9 @@ var (
 )
 
 type Query struct {
-	id        uint16
-	flags     uint16
-	questions []Question
+	id       uint16
+	flags    uint16
+	question Question
 }
 
 func (q *Query) ID() uint16 {
@@ -45,12 +45,12 @@ func (q *Query) IsRecursionDesired() bool {
 	return (q.flags&recursionDesiredMask)>>8 == 1
 }
 
-func (q *Query) Questions() []Question {
-	return q.questions
+func (q *Query) Question() Question {
+	return q.question
 }
 
 func (q *Query) Type() Type {
-	return q.questions[0].Type
+	return q.question.Type
 }
 
 func UnmarshalQuery(data []byte) (*Query, error) {
@@ -84,21 +84,25 @@ func UnmarshalQuery(data []byte) (*Query, error) {
 		return nil, errors.New("no questions")
 	}
 
+	if numQuestions > 1 {
+		return nil, errors.New("too many questions")
+	}
+
 	// skip the next 6 bytes (number of answers, authorities, and additional records - all zeroed in queries)
 	_, err = read(r, 6)
 	if err != nil {
 		return nil, err
 	}
 
-	questions, err := unmarshalQuestions(r, numQuestions)
+	question, err := unmarshalQuestion(r)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Query{
-		id:        identification,
-		flags:     flags,
-		questions: questions,
+		id:       identification,
+		flags:    flags,
+		question: question,
 	}, nil
 }
 

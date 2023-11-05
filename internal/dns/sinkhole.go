@@ -57,31 +57,30 @@ func (s *Sinkhole) Resolve(query *message.Query) (*message.Response, bool) {
 	}
 
 	var answers []message.Record
-	for _, question := range query.Questions() {
-		if question.Class != message.ClassInternetAddress {
-			metrics.UnsupportedClassQueries.With(p.Labels{"class": strconv.Itoa(int(question.Class))}).Inc()
-			return nil, false
+	question := query.Question()
+	if question.Class != message.ClassInternetAddress {
+		metrics.UnsupportedClassQueries.With(p.Labels{"class": strconv.Itoa(int(question.Class))}).Inc()
+		return nil, false
+	}
+
+	if question.Type != message.TypeA {
+		metrics.UnsupportedTypeQueries.With(p.Labels{"type": strconv.Itoa(int(question.Type))}).Inc()
+		return nil, false
+	}
+
+	metrics.SupportedQueries.With(p.Labels{"type": strconv.Itoa(int(question.Type))}).Inc()
+
+	if s.Contains(question.Name) {
+		answer := message.Record{
+			DomainName: question.Name,
+			Type:       message.TypeA,
+			Class:      message.ClassInternetAddress,
+			TTL:        3600,
+			Length:     4,
+			Data:       nonRoutableAddress,
 		}
 
-		if question.Type != message.TypeA {
-			metrics.UnsupportedTypeQueries.With(p.Labels{"type": strconv.Itoa(int(question.Type))}).Inc()
-			return nil, false
-		}
-
-		metrics.SupportedQueries.With(p.Labels{"type": strconv.Itoa(int(question.Type))}).Inc()
-
-		if s.Contains(question.Name) {
-			answer := message.Record{
-				DomainName: question.Name,
-				Type:       message.TypeA,
-				Class:      message.ClassInternetAddress,
-				TTL:        3600,
-				Length:     4,
-				Data:       nonRoutableAddress,
-			}
-
-			answers = append(answers, answer)
-		}
+		answers = append(answers, answer)
 	}
 
 	if len(answers) > 0 {
