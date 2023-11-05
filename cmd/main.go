@@ -60,6 +60,8 @@ func main() {
 	}
 	defer file.Close()
 
+	metrics.NonRoutableDomains.Set(0)
+
 	sinkhole := dns.NewSinkhole(logger)
 
 	scanner := bufio.NewScanner(file)
