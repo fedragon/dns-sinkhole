@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/fedragon/sinkhole/audit"
 	"github.com/fedragon/sinkhole/internal/dns/message"
 	"github.com/fedragon/sinkhole/internal/metrics"
 )
@@ -21,13 +22,15 @@ type Server struct {
 	sinkhole *Sinkhole
 	upstream io.ReadWriteCloser
 	logger   *slog.Logger
+	audit    *audit.Logger
 }
 
-func NewServer(sinkhole *Sinkhole, upstream io.ReadWriteCloser, logger *slog.Logger) *Server {
+func NewServer(sinkhole *Sinkhole, upstream io.ReadWriteCloser, logger *slog.Logger, audit *audit.Logger) *Server {
 	return &Server{
 		sinkhole: sinkhole,
 		upstream: upstream,
 		logger:   logger.With("source", "dns_server"),
+		audit:    audit,
 	}
 }
 
@@ -91,13 +94,13 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 
 				switch handled {
 				case UnresolvedNonStandard:
-					s.logger.Debug("Passing non-standard query to upstream DNS resolver", "query", rawQuery)
+					s.logger.Debug("Passing non-standard query to upstream DNS resolver")
 				case UnresolvedNonRecursive:
-					s.logger.Debug("Passing non-recursive query to upstream DNS resolver", "query", rawQuery)
+					s.logger.Debug("Passing non-recursive query to upstream DNS resolver")
 				case UnresolvedUnsupportedClass:
-					s.logger.Debug("Passing unsupported class query to upstream DNS resolver", "query", rawQuery)
+					s.logger.Debug("Passing unsupported class query to upstream DNS resolver")
 				case UnresolvedUnsupportedType:
-					s.logger.Debug("Passing unsupported type query to upstream DNS resolver", "query", rawQuery)
+					s.logger.Debug("Passing unsupported type query to upstream DNS resolver")
 				case UnresolvedNotFound:
 					// nothing to do
 				}
@@ -108,6 +111,8 @@ func (s *Server) Serve(ctx context.Context, address string) error {
 					s.logger.Error("Unable to query upstream DNS", "raw_query", rawQuery, "error", err)
 					continue
 				}
+
+				s.audit.Log(query.ID(), uint16(query.Type()), rawQuery, rawResponse)
 			}
 
 			if _, err := conn.WriteToUDP(rawResponse, addr); err != nil {

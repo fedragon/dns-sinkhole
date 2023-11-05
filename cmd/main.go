@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/fedragon/sinkhole/audit"
 	"github.com/fedragon/sinkhole/internal/config"
 	"github.com/fedragon/sinkhole/internal/dns"
 	"github.com/fedragon/sinkhole/internal/hosts"
@@ -35,6 +36,13 @@ func main() {
 		logger.Error("Unable to parse configuration", "error", err)
 		return
 	}
+
+	auditLogger, err := audit.New(cfg.AuditLogEnabled)
+	if err != nil {
+		logger.Error("Unable to create audit logger", "error", err)
+		return
+	}
+	defer auditLogger.Close()
 
 	upstream, err := upstream.NewClient(cfg.UpstreamServerAddr)
 	if err != nil {
@@ -113,7 +121,7 @@ func main() {
 	}
 
 	group.Go(func() error {
-		return dns.NewServer(sinkhole, upstream, logger).Serve(gCtx, cfg.LocalServerAddr)
+		return dns.NewServer(sinkhole, upstream, logger, auditLogger).Serve(gCtx, cfg.LocalServerAddr)
 	})
 
 	if err := group.Wait(); err != nil {

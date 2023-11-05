@@ -9,6 +9,9 @@ HOSTS_URL ?= https://raw.githubusercontent.com/StevenBlack/hosts/master/alternat
 RPI_HOST ?= raspberrypi
 RPI_USER ?= pi
 
+METRICS_ENABLED ?= false
+AUDIT_LOG_ENABLED ?= false
+
 VERSION ?= $(shell date +%Y%m%dT%H%M%S)
 
 pre:
@@ -25,7 +28,7 @@ test:
 	go test -v -race -count=1 ./...
 
 generate-service: pre
-	@RPI_USER=${RPI_USER} envsubst < templates/sinkhole.service > deploy/sinkhole.service
+	@RPI_USER=${RPI_USER} METRICS_ENABLED=${METRICS_ENABLED} AUDIT_LOG_ENABLED=${AUDIT_LOG_ENABLED} envsubst < templates/sinkhole.service > deploy/sinkhole.service
 
 deploy:
 	RPI_HOST=${RPI_HOST} RPI_USER=${RPI_USER} scp deploy/* "${RPI_USER}@${RPI_HOST}":

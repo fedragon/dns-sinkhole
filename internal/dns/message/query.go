@@ -49,6 +49,10 @@ func (q *Query) Questions() []Question {
 	return q.questions
 }
 
+func (q *Query) Type() Type {
+	return q.questions[0].Type
+}
+
 func UnmarshalQuery(data []byte) (*Query, error) {
 	if len(data) < 12 {
 		return nil, ErrTooShort

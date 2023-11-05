@@ -12,4 +12,7 @@ type Config struct {
 	HttpShutdownTimeout  time.Duration `envconfig:"HTTP_SHUTDOWN_TIMEOUT" default:"5s"`
 	DebugEndpointEnabled bool          `envconfig:"DEBUG_ENDPOINT_ENABLED" default:"false"`
 	MetricsEnabled       bool          `envconfig:"METRICS_ENABLED" default:"false"`
+
+	// Audit log config
+	AuditLogEnabled bool `envconfig:"AUDIT_LOG_ENABLED" default:"false"`
 }
