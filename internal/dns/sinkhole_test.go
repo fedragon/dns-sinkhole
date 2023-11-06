@@ -19,7 +19,7 @@ func TestSinkhole(t *testing.T) {
 
 	for line := range hosts.Parse(bufio.NewScanner(file)) {
 		assert.NoError(t, line.Err)
-		assert.NoError(t, s.Register(line.Domain))
+		s.Register(line.Domain)
 	}
 
 	for line := range hosts.Parse(bufio.NewScanner(file)) {

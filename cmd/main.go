@@ -74,10 +74,7 @@ func main() {
 			return
 		}
 
-		if err := sinkhole.Register(line.Domain); err != nil {
-			logger.Error("Unable to register domain", "domain", line.Domain, "error", err)
-			return
-		}
+		sinkhole.Register(line.Domain)
 		count++
 	}
 

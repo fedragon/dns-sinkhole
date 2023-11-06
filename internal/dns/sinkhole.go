@@ -3,7 +3,6 @@ package dns
 import (
 	"log/slog"
 	"strconv"
-	"strings"
 
 	p "github.com/prometheus/client_golang/prometheus"
 
@@ -17,31 +16,20 @@ var (
 
 // Sinkhole is a DNS server that receives queries and, if they are related to domains belonging to its internal registry, resolves them to non-routable addresses.
 type Sinkhole struct {
-	registry map[string]*Domain
+	registry map[string]struct{}
 	logger   *slog.Logger
 }
 
 func NewSinkhole(logger *slog.Logger) *Sinkhole {
 	return &Sinkhole{
-		registry: make(map[string]*Domain),
+		registry: make(map[string]struct{}),
 		logger:   logger.With("source", "sinkhole"),
 	}
 }
 
 // Register registers a domain with the sinkhole.
-func (s *Sinkhole) Register(domain string) error {
-	d, err := NewDomain(domain)
-	if err != nil {
-		return err
-	}
-
-	found, ok := s.registry[d.name]
-	if !ok {
-		s.registry[d.name] = d
-		return nil
-	}
-
-	return found.Register(domain)
+func (s *Sinkhole) Register(domain string) {
+	s.registry[domain] = struct{}{}
 }
 
 // Resolve resolves a query to a non-routable address, if the domain belongs to its registry.
@@ -90,15 +78,6 @@ func (s *Sinkhole) Contains(domain string) bool {
 	timer := p.NewTimer(metrics.ResponseTimesInternalResolve)
 	defer timer.ObserveDuration()
 
-	idx := strings.LastIndex(domain, ".")
-	if idx == -1 {
-		return false
-	}
-
-	d, ok := s.registry[domain[idx+1:]]
-	if !ok {
-		return false
-	}
-
-	return d.Contains(domain)
+	_, ok := s.registry[domain]
+	return ok
 }
