@@ -1,5 +1,7 @@
 deploy/*
 !deploy/install.sh
+!deploy/uninstall.sh
 
 *.bin
+*.log
 TODO.md
