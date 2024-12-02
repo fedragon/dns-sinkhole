@@ -3,6 +3,7 @@ package upstream
 import (
 	"io"
 	"net"
+	"time"
 )
 
 type Client struct {
@@ -28,6 +29,10 @@ func (c *Client) Write(data []byte) (int, error) {
 }
 
 func (c *Client) Read(buffer []byte) (int, error) {
+	if err := c.conn.SetReadDeadline(time.Now().Add(time.Second)); err != nil {
+		return 0, err
+	}
+
 	n, _, err := c.conn.ReadFromUDP(buffer)
 	if err != nil {
 		return 0, err
