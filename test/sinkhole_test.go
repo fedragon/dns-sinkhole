@@ -1,4 +1,4 @@
-package dns
+package test
 
 import (
 	"bufio"
@@ -8,11 +8,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/fedragon/sinkhole/internal/dns"
 	"github.com/fedragon/sinkhole/internal/hosts"
 )
 
 func TestSinkhole(t *testing.T) {
-	s := NewSinkhole(slog.Default())
+	s := dns.NewSinkhole(slog.Default())
 	file, err := os.Open("./test-hosts")
 	assert.NoError(t, err)
 	defer file.Close()
