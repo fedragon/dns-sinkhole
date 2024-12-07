@@ -12,7 +12,12 @@ One day I started reading the [Running pi-hole on a Raspberry Pi](https://www.ra
 
 ## Current limitations
 
-It can currently only resolve A-type, IN-class queries received over UDP: any other query will be forwarded to the upstream DNS resolver.
+It can currently only resolve queries received over UDP for: 
+
+- A-type or AAAA-type (IPv4 or IPv6)
+- IN-class 
+
+Any other query will be forwarded to the upstream DNS resolver.
 
 ## Usage
 

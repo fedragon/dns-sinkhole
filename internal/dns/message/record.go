@@ -74,7 +74,7 @@ func unmarshalRecord(r *bufio.Reader) (Record, error) {
 	}, nil
 }
 
-func (r *Record) marshal() ([]byte, error) {
+func marshalRecord(r Record) ([]byte, error) {
 	var data []byte
 	parts := strings.Split(r.DomainName, ".")
 	for _, part := range parts {

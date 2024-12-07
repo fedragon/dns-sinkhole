@@ -97,7 +97,7 @@ func (s *Server) process(rawQuery []byte, conn *net.UDPConn, addr *net.UDPAddr) 
 	if handled {
 		metrics.BlockedQueries.Inc()
 
-		rawResponse, err = response.Marshal()
+		rawResponse, err = message.MarshalResponse(response)
 		if err != nil {
 			metrics.ResponseMarshallingErrors.Inc()
 			return fmt.Errorf("unable to marshal response: %w, response: %v", err, rawResponse)
@@ -111,7 +111,7 @@ func (s *Server) process(rawQuery []byte, conn *net.UDPConn, addr *net.UDPAddr) 
 			return fmt.Errorf("unable to query upstream DNS: %w", err)
 		}
 
-		s.audit.Log(query.ID(), uint16(query.Type()), rawQuery, rawResponse)
+		s.audit.Log(query.ID, uint16(query.Question.Type), rawQuery, rawResponse)
 	}
 
 	writeTimer := p.NewTimer(metrics.ResponseTimesWriteResponse)

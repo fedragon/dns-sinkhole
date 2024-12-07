@@ -53,7 +53,7 @@ func unmarshalQuestion(r *bufio.Reader) (Question, error) {
 	}, nil
 }
 
-func (q Question) marshal() ([]byte, error) {
+func marshalQuestion(q Question) ([]byte, error) {
 	var data []byte
 	parts := strings.Split(q.Name, ".")
 	for _, part := range parts {

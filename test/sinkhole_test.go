@@ -1,33 +1,84 @@
 package test
 
 import (
-	"bufio"
 	"log/slog"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/fedragon/sinkhole/internal/dns"
-	"github.com/fedragon/sinkhole/internal/hosts"
+	"github.com/fedragon/sinkhole/internal/dns/message"
 )
 
-func TestSinkhole(t *testing.T) {
-	s := dns.NewSinkhole(slog.Default())
-	file, err := os.Open("./test-hosts")
-	assert.NoError(t, err)
-	defer file.Close()
+func TestSinkhole_Contains(t *testing.T) {
+	sut := dns.NewSinkhole(slog.Default())
+	blockedDomain := "xxx.yyy"
 
-	for line := range hosts.Parse(bufio.NewScanner(file)) {
-		assert.NoError(t, line.Err)
-		s.Register(line.Domain)
+	sut.Register(blockedDomain)
+
+	assert.True(t, sut.Contains(blockedDomain))
+	assert.False(t, sut.Contains("federico.is"))
+}
+
+func TestSinkhole_Resolve(t *testing.T) {
+	blockedDomain := "xxx.yyy"
+	sut := dns.NewSinkhole(slog.Default())
+
+	sut.Register(blockedDomain)
+
+	query := message.Query{
+		ID:               1,
+		OpCode:           0,
+		RecursionDesired: true,
+		Question: message.Question{
+			Name:  "federico.is",
+			Type:  message.TypeAAAA,
+			Class: message.ClassInternetAddress,
+		},
+	}
+	res, ok := sut.Resolve(&query)
+	assert.False(t, ok)
+	assert.Nil(t, res)
+
+	query = message.Query{
+		ID:               2,
+		OpCode:           0,
+		RecursionDesired: true,
+		Question: message.Question{
+			Name:  blockedDomain,
+			Type:  message.TypeA,
+			Class: message.ClassInternetAddress,
+		},
 	}
 
-	for line := range hosts.Parse(bufio.NewScanner(file)) {
-		assert.NoError(t, line.Err)
-		assert.True(t, s.Contains(line.Domain))
+	res, ok = sut.Resolve(&query)
+	assert.True(t, ok)
+	assert.EqualValues(t, 2, res.ID())
+	assert.Len(t, res.Answers, 1)
+	assert.EqualValues(t, message.TypeA, res.Answers[0].Type)
+	assert.EqualValues(t, message.ClassInternetAddress, res.Answers[0].Class)
+	assert.EqualValues(t, blockedDomain, res.Answers[0].DomainName)
+	assert.EqualValues(t, dns.NonRoutableAddressIPv4[:], res.Answers[0].Data)
+	assert.EqualValues(t, 4, res.Answers[0].Length)
+
+	query = message.Query{
+		ID:               2,
+		OpCode:           0,
+		RecursionDesired: true,
+		Question: message.Question{
+			Name:  blockedDomain,
+			Type:  message.TypeAAAA,
+			Class: message.ClassInternetAddress,
+		},
 	}
 
-	assert.False(t, s.Contains("federico.is"))
-	assert.False(t, s.Contains("github.com"))
+	res, ok = sut.Resolve(&query)
+	assert.True(t, ok)
+	assert.EqualValues(t, 2, res.ID())
+	assert.Len(t, res.Answers, 1)
+	assert.EqualValues(t, message.TypeAAAA, res.Answers[0].Type)
+	assert.EqualValues(t, message.ClassInternetAddress, res.Answers[0].Class)
+	assert.EqualValues(t, blockedDomain, res.Answers[0].DomainName)
+	assert.EqualValues(t, dns.NonRoutableAddressIPv6[:], res.Answers[0].Data)
+	assert.EqualValues(t, 16, res.Answers[0].Length)
 }

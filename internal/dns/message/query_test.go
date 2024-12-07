@@ -3,6 +3,7 @@ package message
 import (
 	"bufio"
 	"bytes"
+	"net/netip"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,7 +26,7 @@ func TestQuery_Identification(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			m, err := UnmarshalQuery(c.data)
 			assert.NoError(t, err)
-			assert.Equal(t, c.expected, m.id)
+			assert.Equal(t, c.expected, m.ID)
 		})
 	}
 }
@@ -52,7 +53,7 @@ func TestQuery_OpCode(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			m, err := UnmarshalQuery(c.data)
 			assert.NoError(t, err)
-			assert.Equal(t, c.expected, m.OpCode())
+			assert.Equal(t, c.expected, m.OpCode)
 		})
 	}
 }
@@ -79,7 +80,7 @@ func TestQuery_IsRecursionDesired(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			m, err := UnmarshalQuery(c.data)
 			assert.NoError(t, err)
-			assert.Equal(t, c.expected, m.IsRecursionDesired())
+			assert.Equal(t, c.expected, m.RecursionDesired)
 		})
 	}
 }
@@ -114,25 +115,43 @@ func TestQuestion_MarshalRoundtrip(t *testing.T) {
 		Class: ClassInternetAddress,
 	}
 
-	data, err := q1.marshal()
+	data, err := marshalQuestion(q1)
 	assert.NoError(t, err)
 	q2, err := unmarshalQuestion(bufio.NewReader(bytes.NewReader(data)))
 	assert.NoError(t, err)
 	assert.Equal(t, q1, q2)
 }
 
-func TestRecord_MarshalRoundtrip(t *testing.T) {
-	ip := []byte("127.0.0.1")
+func TestRecord_A_MarshalRoundtrip(t *testing.T) {
+	ip := netip.MustParseAddr("127.0.0.1").As4()
 	r1 := Record{
 		DomainName: "www.federico.is",
 		Type:       TypeA,
 		Class:      ClassInternetAddress,
 		TTL:        60,
 		Length:     uint16(len(ip)),
-		Data:       ip,
+		Data:       ip[:],
 	}
 
-	data, err := r1.marshal()
+	data, err := marshalRecord(r1)
+	assert.NoError(t, err)
+	q2, err := unmarshalRecord(bufio.NewReader(bytes.NewReader(data)))
+	assert.NoError(t, err)
+	assert.Equal(t, r1, q2)
+}
+
+func TestRecord_AAAA_MarshalRoundtrip(t *testing.T) {
+	ip := netip.MustParseAddr("::1").As16()
+	r1 := Record{
+		DomainName: "www.federico.is",
+		Type:       TypeAAAA,
+		Class:      ClassInternetAddress,
+		TTL:        60,
+		Length:     uint16(len(ip)),
+		Data:       ip[:],
+	}
+
+	data, err := marshalRecord(r1)
 	assert.NoError(t, err)
 	q2, err := unmarshalRecord(bufio.NewReader(bytes.NewReader(data)))
 	assert.NoError(t, err)

@@ -14,7 +14,8 @@ type Type uint16
 const (
 	ClassInternetAddress Class = 1
 
-	TypeA Type = 1
+	TypeA    Type = 1
+	TypeAAAA Type = 28
 
 	queryMask              = 0b1000_0000_0000_0000
 	opCodeMask             = 0b0111_1000_0000_0000
@@ -28,29 +29,10 @@ var (
 )
 
 type Query struct {
-	id       uint16
-	flags    uint16
-	question Question
-}
-
-func (q *Query) ID() uint16 {
-	return q.id
-}
-
-func (q *Query) OpCode() uint8 {
-	return uint8((q.flags & opCodeMask) >> 11)
-}
-
-func (q *Query) IsRecursionDesired() bool {
-	return (q.flags&recursionDesiredMask)>>8 == 1
-}
-
-func (q *Query) Question() Question {
-	return q.question
-}
-
-func (q *Query) Type() Type {
-	return q.question.Type
+	ID               uint16
+	OpCode           uint8
+	RecursionDesired bool
+	Question         Question
 }
 
 func UnmarshalQuery(data []byte) (*Query, error) {
@@ -100,9 +82,10 @@ func UnmarshalQuery(data []byte) (*Query, error) {
 	}
 
 	return &Query{
-		id:       identification,
-		flags:    flags,
-		question: question,
+		ID:               identification,
+		OpCode:           uint8((flags & opCodeMask) >> 11),
+		RecursionDesired: (flags&recursionDesiredMask)>>8 == 1,
+		Question:         question,
 	}, nil
 }
 

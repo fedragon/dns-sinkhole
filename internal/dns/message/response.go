@@ -14,15 +14,15 @@ type Response struct {
 func NewResponse(query *Query, answer Record) *Response {
 	var flags uint16
 	flags |= 1 << 15 // QueryResponse: 1 for Response
-	if query.IsRecursionDesired() {
+	if query.RecursionDesired {
 		flags |= 1 << 8 // RecursionDesired: 1
 	}
 	flags |= 1 << 7 // RecursionAvailable: 1
 
 	res := &Response{
-		id:        query.ID(),
+		id:        query.ID,
 		flags:     flags,
-		questions: []Question{query.Question()},
+		questions: []Question{query.Question},
 		Answers:   []Record{answer},
 	}
 
@@ -41,7 +41,7 @@ func (r *Response) IsRecursionAvailable() bool {
 	return (r.flags&recursionAvailableMask)>>7 == 1
 }
 
-func (r *Response) Marshal() ([]byte, error) {
+func MarshalResponse(r *Response) ([]byte, error) {
 	var data []byte
 	data = byteOrder.AppendUint16(data, r.id)
 	data = byteOrder.AppendUint16(data, r.flags)
@@ -51,7 +51,7 @@ func (r *Response) Marshal() ([]byte, error) {
 	data = byteOrder.AppendUint16(data, 0) // number of additional records
 
 	for _, q := range r.questions {
-		buf, err := q.marshal()
+		buf, err := marshalQuestion(q)
 		if err != nil {
 			return nil, err
 		}
@@ -59,7 +59,7 @@ func (r *Response) Marshal() ([]byte, error) {
 	}
 
 	for _, r := range r.Answers {
-		buf, err := r.marshal()
+		buf, err := marshalRecord(r)
 		if err != nil {
 			return nil, err
 		}
